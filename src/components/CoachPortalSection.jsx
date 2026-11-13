@@ -30,7 +30,8 @@ import {
   TIME_SLOTS,
   mapScheduleToSlotId,
   calculateCourseDates,
-  getLocalDateString
+  getLocalDateString,
+  isTimeOverlapping
 } from '../data/courts';
 
 const DAYS_OF_WEEK = [
@@ -479,6 +480,38 @@ export default function CoachPortalSection({
 
   const handleJumpToCurrentWeek = () => {
     setSelectedWeekMonday(currentMondayStr);
+  };
+
+  // Tìm kiếm thông minh: nếu học viên được tìm kiếm có lịch học ở tuần khác, cung cấp nút chuyển ngay đến tuần đó
+  const searchMatchedSessions = useMemo(() => {
+    if (!scheduleSearch) return [];
+    const q = scheduleSearch.toLowerCase().trim();
+    return allTimelineSessions.filter(
+      (s) =>
+        s.studentName.toLowerCase().includes(q) ||
+        s.studentPhone.includes(q) ||
+        s.courseTitle.toLowerCase().includes(q) ||
+        s.courseCode.toLowerCase().includes(q)
+    );
+  }, [scheduleSearch, allTimelineSessions]);
+
+  const searchTargetWeekMonday = useMemo(() => {
+    if (searchMatchedSessions.length === 0) return null;
+    return getMondayDateStr(searchMatchedSessions[0].date);
+  }, [searchMatchedSessions]);
+
+  const jumpToStudentSchedule = (studentName) => {
+    const studentSessions = allTimelineSessions.filter(
+      (s) => s.studentName.toLowerCase().includes(studentName.toLowerCase())
+    );
+    if (studentSessions.length > 0) {
+      const targetMon = getMondayDateStr(studentSessions[0].date);
+      setSelectedWeekMonday(targetMon);
+      setScheduleSearch(studentName);
+      if (!studentSessions[0].isOwner) {
+        setScheduleScope('all');
+      }
+    }
   };
 
   const countPast = useMemo(() => timelineSource.filter((s) => s.timeStatus === 'past').length, [timelineSource]);
@@ -1075,6 +1108,78 @@ export default function CoachPortalSection({
                 </div>
               </div>
 
+              {/* Quick Jump Chips for All Enrolled Students */}
+              <div className="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 px-3 bg-white rounded-3 border small">
+                <span className="fw-bold text-dark d-flex align-items-center gap-1">
+                  <Sparkles size={14} className="text-warning" />
+                  <span>Tra cứu nhanh lịch học viên:</span>
+                </span>
+                {enrollments.map((enr) => (
+                  <button
+                    key={enr.id}
+                    type="button"
+                    onClick={() => jumpToStudentSchedule(enr.studentName)}
+                    className={`btn btn-sm py-0 px-2 rounded-pill fw-semibold border ${
+                      scheduleSearch.toLowerCase().includes(enr.studentName.toLowerCase())
+                        ? 'btn-primary shadow-xs'
+                        : 'btn-light text-dark'
+                    }`}
+                    style={{ fontSize: '0.72rem' }}
+                    title={`Bấm để chuyển ngay đến tuần có lịch học của ${enr.studentName}`}
+                  >
+                    👤 {enr.studentName} {enr.startDate ? `(${enr.startDate.split('-')[2]}/${enr.startDate.split('-')[1]})` : ''}
+                  </button>
+                ))}
+                {scheduleSearch && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScheduleSearch('');
+                      handleJumpToCurrentWeek();
+                    }}
+                    className="btn btn-sm btn-outline-secondary py-0 px-2 rounded-pill"
+                    style={{ fontSize: '0.7rem' }}
+                  >
+                    ✕ Xóa tìm kiếm
+                  </button>
+                )}
+              </div>
+
+              {/* Alert for search match found in a different week */}
+              {searchMatchedSessions.length > 0 && searchTargetWeekMonday && searchTargetWeekMonday !== selectedWeekMonday && (
+                <div className="alert alert-info rounded-3 p-2 px-3 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2 shadow-xs">
+                  <div className="small">
+                    💡 Tìm thấy <strong>{searchMatchedSessions.length} buổi học</strong> của học viên <strong>&quot;{searchMatchedSessions[0].studentName}&quot;</strong> (Khóa: {searchMatchedSessions[0].courseTitle}, HLV: {searchMatchedSessions[0].coachName}) bắt đầu từ ngày <strong>{searchMatchedSessions[0].dateFormatted}</strong>.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedWeekMonday(searchTargetWeekMonday);
+                      if (!searchMatchedSessions[0].isOwner) setScheduleScope('all');
+                    }}
+                    className="btn btn-sm btn-primary fw-bold"
+                  >
+                    👉 Chuyển ngay đến tuần có lịch học ({searchMatchedSessions[0].dateFormatted})
+                  </button>
+                </div>
+              )}
+
+              {/* Alert if student belongs to another coach and currently viewing my-schedule */}
+              {searchMatchedSessions.length > 0 && !searchMatchedSessions[0].isOwner && scheduleScope === 'my-schedule' && (
+                <div className="alert alert-warning rounded-3 p-2 px-3 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2 shadow-xs">
+                  <div className="small">
+                    ⚠️ Học viên <strong>&quot;{searchMatchedSessions[0].studentName}&quot;</strong> thuộc lớp của <strong>{searchMatchedSessions[0].coachName}</strong>. Bấm nút bên cạnh để xem lịch toàn trường!
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleScope('all')}
+                    className="btn btn-sm btn-warning text-dark fw-bold"
+                  >
+                    Xem lịch toàn trường
+                  </button>
+                </div>
+              )}
+
               {/* Status Note & Legend */}
               <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 small">
                 <div className="d-flex flex-wrap align-items-center gap-3">
@@ -1170,7 +1275,7 @@ export default function CoachPortalSection({
                             {/* 7 Columns: Mon to Sun */}
                             {currentWeekDays.map((day) => {
                               let cellSessions = weekSessions.filter(
-                                (s) => s.date === day.dateStr && s.slotId === slot.id
+                                (s) => s.date === day.dateStr && (s.slotId === slot.id || isTimeOverlapping(s.time, slot.time))
                               );
 
                               if (scheduleSearch) {

@@ -26,10 +26,16 @@ import {
   Filter,
   RotateCcw,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Award,
+  Activity,
+  Check,
+  BookOpen,
+  TrendingUp,
+  BarChart2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getLocalDateString } from '../data/courts';
+import { getLocalDateString, calculateCourseDates } from '../data/courts';
 
 export default function AdminPortalSection({
   courses,
@@ -163,6 +169,63 @@ export default function AdminPortalSection({
     stock: 20,
     specs: 'Mặt Raw Carbon T700 • Lõi 16mm • Chuẩn USAPA'
   });
+
+  // State cho Quản Lý & Theo Dõi Tiến Độ Học Viên (Admin Progress View)
+  const [selectedProgressEnr, setSelectedProgressEnr] = useState(null);
+  const [adminStudentSearch, setAdminStudentSearch] = useState('');
+  const [adminStudentStatusFilter, setAdminStudentStatusFilter] = useState('all');
+
+  const getEnrollmentStats = (enr) => {
+    let total = enr.totalSessions;
+    if (!total) {
+      const c = courses.find((crs) => crs.id === enr.courseId);
+      const match = c?.duration?.match(/(\d+)\s*buổi/i);
+      total = match ? parseInt(match[1], 10) : 8;
+    }
+    let attended = enr.attendedSessions !== undefined && enr.attendedSessions !== null ? Number(enr.attendedSessions) : 0;
+    let absent = enr.absentSessions !== undefined && enr.absentSessions !== null ? Number(enr.absentSessions) : 0;
+    let remaining = enr.remainingSessions !== undefined ? Number(enr.remainingSessions) : Math.max(0, total - (attended + absent));
+    const percent = Math.min(100, Math.round((attended / total) * 100));
+
+    return { total, attended, absent, remaining, percent };
+  };
+
+  const getEnrollmentRoadmap = (enr) => {
+    const stats = getEnrollmentStats(enr);
+    const { sessionDates } = calculateCourseDates(enr.preferredSchedule, enr.startDate, stats.total);
+    const dayLabelsVn = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+
+    return sessionDates.map((dateStr, idx) => {
+      const d = new Date(dateStr);
+      const dayLabel = dayLabelsVn[d.getDay()];
+      const isPast = dateStr < todayStr;
+      const isToday = dateStr === todayStr;
+      const isFuture = dateStr > todayStr;
+
+      let status = 'pending';
+      if (Array.isArray(enr.sessionsList) && enr.sessionsList[idx]) {
+        status = enr.sessionsList[idx];
+      } else if (isPast) {
+        status = idx < stats.attended ? 'present' : 'absent';
+      }
+
+      return {
+        sessionNumber: idx + 1,
+        date: dateStr,
+        dayLabel,
+        isPast,
+        isToday,
+        isFuture,
+        status
+      };
+    });
+  };
+
+  const activeEnrollmentsCount = enrollments.filter((e) => e.status === 'confirmed').length;
+  const completedEnrollmentsCount = enrollments.filter((e) => e.status === 'completed').length;
+  const totalAttendedSessionsAll = enrollments.reduce((sum, e) => sum + (e.attendedSessions || 0), 0);
+  const totalSessionsAll = enrollments.reduce((sum, e) => sum + (e.totalSessions || 8), 0);
+  const avgAttendanceRate = totalSessionsAll > 0 ? Math.round((totalAttendedSessionsAll / totalSessionsAll) * 100) : 0;
 
   const formatVND = (amount) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -373,8 +436,9 @@ export default function AdminPortalSection({
     },
     {
       id: 'enrollments',
-      label: `Hồ Sơ Học Viên (${enrollments.length})`,
-      icon: Users
+      label: `Tiến Độ & Hồ Sơ Học Viên (${enrollments.length})`,
+      icon: Users,
+      badge: 'Tiến độ'
     },
     {
       id: 'shop',
@@ -2218,98 +2282,560 @@ export default function AdminPortalSection({
         )}
 
 {/* ===================================================================
-            MENU 5: HỒ SƠ HỌC VIÊN GHI DANH
+            MENU 5: QUẢN LÝ HỒ SƠ & THEO DÕI TIẾN ĐỘ HỌC TẬP CỦA HỌC VIÊN
            =================================================================== */}
         {activeMenu === 'enrollments' && (
-          <div className="card border-0 shadow-sm rounded-4 p-4">
-            <h5 className="fw-extrabold text-dark mb-3">
-              Quản Lý Hồ Sơ Học Viên Ghi Danh ({enrollments.length} Hồ Sơ)
-            </h5>
-            <div className="table-responsive">
-              <table className="table table-bordered align-middle small">
-                <thead className="table-dark">
-                  <tr>
-                    <th>Mã Hồ Sơ</th>
-                    <th>Họ Tên Học Viên</th>
-                    <th>Khóa Học Đăng Ký</th>
-                    <th>Học Phí</th>
-                    <th>Trạng Thái</th>
-                    <th>Xóa</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {enrollments.map((enr) => (
-                    <tr key={enr.id}>
-                      <td className="fw-bold">{enr.id}</td>
-                      <td>
-                        <div className="fw-bold">{enr.studentName}</div>
-                        <div className="text-secondary">
-                          {enr.studentPhone} • {enr.studentEmail}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="fw-bold text-dark">{enr.courseTitle}</div>
-                        <div className="d-flex align-items-center gap-1 mt-1 flex-wrap">
-                          <span className="text-secondary small fw-bold">👤 Phân công HLV:</span>
-                          <select
-                            className={`form-select form-select-sm py-0 ${!enr.coachName || enr.coachName === 'Chưa phân công' ? 'border-danger text-danger fw-bold' : 'border-success text-success fw-bold'}`}
-                            style={{ fontSize: '0.76rem', width: 'auto' }}
-                            value={enr.coachName || ''}
-                            onChange={(e) => onUpdateEnrollment(enr.id, { coachName: e.target.value })}
-                          >
-                            <option value="">-- Chưa phân công HLV --</option>
-                            <option value="HLV Vũ Minh Quân">HLV Vũ Minh Quân</option>
-                            <option value="HLV Nguyễn Hoàng Nam">HLV Nguyễn Hoàng Nam</option>
-                            <option value="HLV David Trần">HLV David Trần</option>
-                            <option value="HLV Đỗ Hải Yến">HLV Đỗ Hải Yến</option>
-                            <option value="HLV Sarah Jenkins">HLV Sarah Jenkins</option>
-                          </select>
-                        </div>
-                        {enr.startDate && (
-                          <div className="text-muted small mt-1" style={{ fontSize: '0.72rem' }}>
-                            📅 Khởi đầu: <strong>{enr.startDate}</strong> • Kết thúc dự kiến: <strong>{enr.expectedEndDate || 'Theo tiến độ'}</strong>
-                          </div>
-                        )}
-                        {enr.preferredSchedule && (
-                          <div className="mt-1">
-                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle" style={{ fontSize: '0.72rem' }}>
-                              🕒 Lịch học: {enr.preferredSchedule}
-                            </span>
-                          </div>
-                        )}
-                        {enr.notes && (
-                          <div className="text-muted small mt-1" style={{ fontSize: '0.72rem' }}>
-                            💬 Ghi chú: {enr.notes}
-                          </div>
-                        )}
-                      </td>
-                      <td className="fw-bold text-danger">{formatVND(enr.tuition)}</td>
-                      <td>
-                        <select
-                          className="form-select form-select-sm"
-                          value={enr.status || 'confirmed'}
-                          onChange={(e) => onUpdateEnrollment(enr.id, { status: e.target.value })}
-                        >
-                          <option value="pending">Chờ duyệt</option>
-                          <option value="confirmed">Đang theo học</option>
-                          <option value="completed">Đã tốt nghiệp</option>
-                          <option value="cancelled">Đã hủy</option>
-                        </select>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          onClick={() => onDeleteEnrollment(enr.id)}
-                          className="btn btn-sm btn-outline-danger"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div>
+            {/* KPI Cards for Student Learning Progress */}
+            <div className="row g-3 mb-4">
+              <div className="col-6 col-md-3">
+                <div className="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-4 border-primary">
+                  <div className="text-secondary small fw-bold">TỔNG HỌC VIÊN GHI DANH</div>
+                  <div className="fs-3 fw-extrabold text-dark">{enrollments.length} học viên</div>
+                  <small className="text-primary fw-semibold">Toàn bộ hồ sơ đào tạo</small>
+                </div>
+              </div>
+              <div className="col-6 col-md-3">
+                <div className="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-4 border-success">
+                  <div className="text-secondary small fw-bold">ĐANG THEO HỌC</div>
+                  <div className="fs-3 fw-extrabold text-success">{activeEnrollmentsCount} học viên</div>
+                  <small className="text-secondary">Lớp đang diễn ra trên sân</small>
+                </div>
+              </div>
+              <div className="col-6 col-md-3">
+                <div className="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-4 border-info">
+                  <div className="text-secondary small fw-bold">ĐÃ TỐT NGHIỆP</div>
+                  <div className="fs-3 fw-extrabold text-info">{completedEnrollmentsCount} học viên</div>
+                  <small className="text-secondary">Hoàn thành 100% giáo trình</small>
+                </div>
+              </div>
+              <div className="col-6 col-md-3">
+                <div className="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 border-start border-4 border-warning">
+                  <div className="text-secondary small fw-bold">CHUYÊN CẦN TRUNG BÌNH</div>
+                  <div className="fs-3 fw-extrabold text-warning">{avgAttendanceRate}%</div>
+                  <small className="text-secondary">
+                    {totalAttendedSessionsAll}/{totalSessionsAll} ca đã hoàn thành
+                  </small>
+                </div>
+              </div>
             </div>
+
+            {/* Filter & Search Bar */}
+            <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
+              <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 pb-3 border-bottom">
+                <div>
+                  <span className="badge bg-primary-subtle text-primary fw-bold px-3 py-1 rounded-pill mb-1">
+                    THEO DÕI TIẾN ĐỘ HỌC VIÊN
+                  </span>
+                  <h4 className="fw-extrabold text-dark mb-0">
+                    Bảng Tiến Độ Đào Tạo & Nhật Ký Điểm Danh Học Viên
+                  </h4>
+                  <small className="text-secondary">
+                    Quản trị viên có thể theo dõi tiến độ từng buổi học, tỷ lệ chuyên cần, điểm DUPR, nhận xét của HLV và sân tập phân bổ.
+                  </small>
+                </div>
+
+                <div className="d-flex flex-wrap gap-2">
+                  <div className="input-group input-group-sm" style={{ width: '260px' }}>
+                    <span className="input-group-text bg-light">
+                      <Search size={15} />
+                    </span>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Tìm tên HV, SĐT, khóa học..."
+                      value={adminStudentSearch}
+                      onChange={(e) => setAdminStudentSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div className="d-flex flex-wrap gap-2 mb-3">
+                {[
+                  { id: 'all', label: `Tất cả (${enrollments.length})` },
+                  { id: 'confirmed', label: `Đang theo học (${activeEnrollmentsCount})` },
+                  { id: 'completed', label: `Đã tốt nghiệp (${completedEnrollmentsCount})` },
+                  { id: 'pending', label: 'Chờ duyệt' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setAdminStudentStatusFilter(tab.id)}
+                    className={`btn btn-sm rounded-pill px-3 py-1 fw-bold ${
+                      adminStudentStatusFilter === tab.id
+                        ? 'btn-primary shadow-sm'
+                        : 'btn-light border text-secondary'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Main Enrollments & Learning Progress Table */}
+              <div className="table-responsive">
+                <table className="table table-bordered table-hover align-middle small mb-0">
+                  <thead className="table-dark">
+                    <tr>
+                      <th style={{ width: '100px' }}>Mã HV</th>
+                      <th style={{ minWidth: '180px' }}>Học Viên & Liên Hệ</th>
+                      <th style={{ minWidth: '220px' }}>Khóa Học, HLV & Sân Tập</th>
+                      <th style={{ minWidth: '260px' }}>Tiến Độ Học Tập Toàn Khóa</th>
+                      <th style={{ minWidth: '200px' }}>Đánh Giá DUPR & Nhận Xét HLV</th>
+                      <th style={{ width: '130px' }}>Trạng Thái</th>
+                      <th style={{ width: '140px' }} className="text-center">Hành Động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {enrollments
+                      .filter((enr) => {
+                        if (adminStudentStatusFilter !== 'all' && enr.status !== adminStudentStatusFilter)
+                          return false;
+                        if (adminStudentSearch) {
+                          const q = adminStudentSearch.toLowerCase().trim();
+                          const matchName = enr.studentName?.toLowerCase().includes(q);
+                          const matchPhone = enr.studentPhone?.includes(q);
+                          const matchCourse = enr.courseTitle?.toLowerCase().includes(q);
+                          const matchCoach = enr.coachName?.toLowerCase().includes(q);
+                          if (!matchName && !matchPhone && !matchCourse && !matchCoach) return false;
+                        }
+                        return true;
+                      })
+                      .map((enr) => {
+                        const stats = getEnrollmentStats(enr);
+                        const roadmap = getEnrollmentRoadmap(enr);
+
+                        return (
+                          <tr key={enr.id}>
+                            <td>
+                              <span className="badge bg-dark fw-bold">{enr.id}</span>
+                              <div className="text-muted mt-1" style={{ fontSize: '0.68rem' }}>
+                                {enr.createdAt ? enr.createdAt.split(' ')[0] : 'Mới'}
+                              </div>
+                            </td>
+
+                            <td>
+                              <div className="fw-extrabold text-dark fs-6">{enr.studentName}</div>
+                              <div className="mt-1">
+                                <a
+                                  href={`tel:${enr.studentPhone}`}
+                                  className="text-primary text-decoration-none fw-semibold"
+                                >
+                                  📞 {enr.studentPhone}
+                                </a>
+                              </div>
+                              <div className="text-muted" style={{ fontSize: '0.72rem' }}>
+                                ✉️ {enr.studentEmail}
+                              </div>
+                              {enr.experienceLevel && (
+                                <span className="badge bg-light text-secondary border mt-1" style={{ fontSize: '0.66rem' }}>
+                                  {enr.experienceLevel.split('(')[0].trim()}
+                                </span>
+                              )}
+                            </td>
+
+                            <td>
+                              <div className="fw-bold text-dark">{enr.courseTitle}</div>
+                              <div className="d-flex align-items-center gap-1 mt-1 flex-wrap">
+                                <span className="text-secondary small fw-bold">👤 HLV:</span>
+                                <select
+                                  className={`form-select form-select-sm py-0 ${
+                                    !enr.coachName || enr.coachName === 'Chưa phân công'
+                                      ? 'border-danger text-danger fw-bold'
+                                      : 'border-success text-success fw-bold'
+                                  }`}
+                                  style={{ fontSize: '0.75rem', width: 'auto' }}
+                                  value={enr.coachName || ''}
+                                  onChange={(e) =>
+                                    onUpdateEnrollment(enr.id, { coachName: e.target.value })
+                                  }
+                                >
+                                  <option value="">-- Chưa phân công HLV --</option>
+                                  <option value="HLV Vũ Minh Quân">HLV Vũ Minh Quân</option>
+                                  <option value="HLV Sarah Jenkins">HLV Sarah Jenkins</option>
+                                  <option value="HLV Nguyễn Hoàng Nam">HLV Nguyễn Hoàng Nam</option>
+                                  <option value="HLV Lê Phương Thảo">HLV Lê Phương Thảo</option>
+                                </select>
+                              </div>
+
+                              <div className="text-primary small mt-1" style={{ fontSize: '0.74rem' }}>
+                                🏟️ <strong>{enr.courtName || 'Sân Huấn Luyện #3'}</strong>
+                              </div>
+
+                              {enr.preferredSchedule && (
+                                <div className="mt-1">
+                                  <span
+                                    className="badge bg-light text-dark border"
+                                    style={{ fontSize: '0.7rem' }}
+                                  >
+                                    🕒 {enr.preferredSchedule}
+                                  </span>
+                                </div>
+                              )}
+
+                              {enr.startDate && (
+                                <div className="text-muted mt-1" style={{ fontSize: '0.7rem' }}>
+                                  📅 {enr.startDate} ➔ {enr.expectedEndDate || 'Theo tiến độ'}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* CỘT TIẾN ĐỘ HỌC TẬP TOÀN KHÓA */}
+                            <td>
+                              <div className="d-flex justify-content-between align-items-center mb-1">
+                                <span className="fw-bold text-dark" style={{ fontSize: '0.76rem' }}>
+                                  Đã học: <strong className="text-success">{stats.attended}</strong> / {stats.total} buổi
+                                </span>
+                                <span
+                                  className={`badge ${
+                                    stats.percent >= 100
+                                      ? 'bg-success text-white'
+                                      : stats.percent >= 50
+                                      ? 'bg-primary text-white'
+                                      : 'bg-secondary text-white'
+                                  }`}
+                                  style={{ fontSize: '0.7rem' }}
+                                >
+                                  {stats.percent}%
+                                </span>
+                              </div>
+
+                              {/* Progress Bar */}
+                              <div className="progress mb-2" style={{ height: '7px' }}>
+                                <div
+                                  className={`progress-bar progress-bar-striped ${
+                                    stats.percent >= 100
+                                      ? 'bg-success'
+                                      : stats.percent >= 50
+                                      ? 'bg-primary'
+                                      : 'bg-info'
+                                  }`}
+                                  role="progressbar"
+                                  style={{ width: `${stats.percent}%` }}
+                                  aria-valuenow={stats.percent}
+                                  aria-valuemin="0"
+                                  aria-valuemax="100"
+                                />
+                              </div>
+
+                              {/* Mini-pills lộ trình từng buổi */}
+                              <div className="d-flex flex-wrap gap-1 mb-1">
+                                {roadmap.slice(0, 10).map((r) => {
+                                  let bgClass = 'bg-light text-muted border';
+                                  let sym = '⏳';
+                                  if (r.status === 'present') {
+                                    bgClass = 'bg-success text-white';
+                                    sym = '✓';
+                                  } else if (r.status === 'absent') {
+                                    bgClass = 'bg-danger text-white';
+                                    sym = '✕';
+                                  }
+                                  return (
+                                    <span
+                                      key={r.sessionNumber}
+                                      className={`badge px-1 py-1 ${bgClass}`}
+                                      style={{ fontSize: '0.64rem' }}
+                                      title={`Buổi ${r.sessionNumber} (${r.dayLabel} ${r.date}): ${
+                                        r.status === 'present'
+                                          ? 'Có mặt'
+                                          : r.status === 'absent'
+                                          ? 'Vắng'
+                                          : 'Chưa học'
+                                      }`}
+                                    >
+                                      B{r.sessionNumber}{sym}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+
+                              <div
+                                className="d-flex justify-content-between text-muted"
+                                style={{ fontSize: '0.7rem' }}
+                              >
+                                <span>Còn: <strong className="text-primary">{stats.remaining}</strong> buổi</span>
+                                <span>Vắng: <strong className="text-danger">{stats.absent}</strong> buổi</span>
+                              </div>
+                            </td>
+
+                            {/* CỘT ĐÁNH GIÁ DUPR & NHẬN XÉT HLV */}
+                            <td>
+                              <div className="mb-1">
+                                <span className="badge bg-warning-subtle text-dark border border-warning-subtle fw-bold" style={{ fontSize: '0.72rem' }}>
+                                  ⭐ {enr.duprEvaluation || 'Chưa kiểm tra DUPR'}
+                                </span>
+                              </div>
+                              {enr.coachFeedback ? (
+                                <div
+                                  className="p-1 px-2 bg-light rounded text-dark border"
+                                  style={{ fontSize: '0.72rem', fontStyle: 'italic', maxHeight: '60px', overflowY: 'auto' }}
+                                  title={enr.coachFeedback}
+                                >
+                                  &quot;{enr.coachFeedback}&quot;
+                                </div>
+                              ) : (
+                                <span className="text-muted fst-italic" style={{ fontSize: '0.72rem' }}>
+                                  HLV chưa nhập nhận xét
+                                </span>
+                              )}
+                            </td>
+
+                            {/* CỘT TRẠNG THÁI */}
+                            <td>
+                              <select
+                                className={`form-select form-select-sm fw-bold ${
+                                  enr.status === 'completed'
+                                    ? 'text-success border-success'
+                                    : enr.status === 'confirmed'
+                                    ? 'text-primary border-primary'
+                                    : 'text-secondary'
+                                }`}
+                                style={{ fontSize: '0.74rem' }}
+                                value={enr.status || 'confirmed'}
+                                onChange={(e) =>
+                                  onUpdateEnrollment(enr.id, { status: e.target.value })
+                                }
+                              >
+                                <option value="confirmed">Đang theo học</option>
+                                <option value="completed">Đã tốt nghiệp</option>
+                                <option value="pending">Chờ duyệt</option>
+                                <option value="cancelled">Đã hủy</option>
+                              </select>
+                              <div className="fw-bold text-danger mt-1 text-center" style={{ fontSize: '0.75rem' }}>
+                                {formatVND(enr.tuition)}
+                              </div>
+                            </td>
+
+                            {/* CỘT HÀNH ĐỘNG */}
+                            <td className="text-center">
+                              <div className="d-flex flex-column gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedProgressEnr(enr)}
+                                  className="btn btn-sm btn-primary fw-bold py-1 px-2 d-flex align-items-center justify-content-center gap-1 shadow-xs"
+                                  style={{ fontSize: '0.74rem' }}
+                                >
+                                  <Eye size={13} />
+                                  <span>Xem Tiến Độ</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onDeleteEnrollment(enr.id)}
+                                  className="btn btn-sm btn-outline-danger py-0 px-2 d-flex align-items-center justify-content-center gap-1"
+                                  style={{ fontSize: '0.7rem' }}
+                                  title="Xóa hồ sơ và giải phóng sân"
+                                >
+                                  <Trash2 size={12} />
+                                  <span>Xóa</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* MODAL CHI TIẾT TIẾN ĐỘ HỌC TẬP CHO ADMIN */}
+            {selectedProgressEnr && (
+              <div
+                className="modal fade show d-block"
+                style={{ backgroundColor: 'rgba(15, 23, 42, 0.75)', zIndex: 1060 }}
+                onClick={() => setSelectedProgressEnr(null)}
+              >
+                <div
+                  className="modal-dialog modal-dialog-centered modal-lg my-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                    <div className="modal-header bg-dark text-white p-3 px-4">
+                      <div>
+                        <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                          <span className="badge bg-primary text-white fw-bold">
+                            HỒ SƠ TIẾN ĐỘ HỌC VIÊN
+                          </span>
+                          <span className="badge bg-warning text-dark fw-bold">
+                            Mã: #{selectedProgressEnr.id}
+                          </span>
+                        </div>
+                        <h5 className="modal-title fw-extrabold mb-0">
+                          {selectedProgressEnr.studentName}
+                        </h5>
+                        <small className="text-white-50">
+                          {selectedProgressEnr.courseTitle}
+                        </small>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white"
+                        onClick={() => setSelectedProgressEnr(null)}
+                      />
+                    </div>
+
+                    <div className="modal-body p-4" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+                      {(() => {
+                        const stats = getEnrollmentStats(selectedProgressEnr);
+                        const roadmap = getEnrollmentRoadmap(selectedProgressEnr);
+
+                        return (
+                          <div>
+                            {/* KPI Grid */}
+                            <div className="row g-2 text-center mb-4">
+                              <div className="col-3">
+                                <div className="p-3 bg-light rounded-3 border">
+                                  <div className="text-secondary small">Tổng Số Buổi</div>
+                                  <div className="fs-4 fw-extrabold text-dark">{stats.total}</div>
+                                </div>
+                              </div>
+                              <div className="col-3">
+                                <div className="p-3 bg-success bg-opacity-10 rounded-3 border border-success-subtle">
+                                  <div className="text-success small fw-bold">Đã Có Mặt</div>
+                                  <div className="fs-4 fw-extrabold text-success">{stats.attended}</div>
+                                </div>
+                              </div>
+                              <div className="col-3">
+                                <div className="p-3 bg-danger bg-opacity-10 rounded-3 border border-danger-subtle">
+                                  <div className="text-danger small fw-bold">Vắng Mặt</div>
+                                  <div className="fs-4 fw-extrabold text-danger">{stats.absent}</div>
+                                </div>
+                              </div>
+                              <div className="col-3">
+                                <div className="p-3 bg-primary bg-opacity-10 rounded-3 border border-primary-subtle">
+                                  <div className="text-primary small fw-bold">Còn Lại</div>
+                                  <div className="fs-4 fw-extrabold text-primary">{stats.remaining}</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Thông tin lớp & HLV & Sân */}
+                            <div className="p-3 bg-light rounded-4 border mb-4 small">
+                              <div className="row g-2">
+                                <div className="col-sm-6">
+                                  <span className="text-secondary">Huấn luyện viên phụ trách:</span>
+                                  <strong className="text-dark d-block fs-6">
+                                    👤 {selectedProgressEnr.coachName || 'Chưa phân công'}
+                                  </strong>
+                                </div>
+                                <div className="col-sm-6">
+                                  <span className="text-secondary">Sân tập phân bổ:</span>
+                                  <strong className="text-primary d-block fs-6">
+                                    🏟️ {selectedProgressEnr.courtName || 'Sân Huấn Luyện #3'}
+                                  </strong>
+                                </div>
+                                <div className="col-sm-6">
+                                  <span className="text-secondary">Khung giờ đào tạo:</span>
+                                  <strong className="text-dark d-block">
+                                    🕒 {selectedProgressEnr.preferredSchedule}
+                                  </strong>
+                                </div>
+                                <div className="col-sm-6">
+                                  <span className="text-secondary">Thời gian đào tạo:</span>
+                                  <strong className="text-dark d-block">
+                                    📅 {selectedProgressEnr.startDate} ➔ {selectedProgressEnr.expectedEndDate || 'Theo tiến độ'}
+                                  </strong>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Bảng lộ trình chi tiết từng buổi */}
+                            <h6 className="fw-extrabold text-dark mb-2 d-flex align-items-center gap-2">
+                              <Calendar size={18} className="text-primary" />
+                              <span>Lộ Trình & Nhật Ký Điểm Danh Từng Buổi ({roadmap.length} Buổi)</span>
+                            </h6>
+                            <div className="table-responsive rounded-3 border mb-4">
+                              <table className="table table-bordered table-sm align-middle small mb-0 text-center">
+                                <thead className="table-light">
+                                  <tr>
+                                    <th>Buổi #</th>
+                                    <th>Ngày Học</th>
+                                    <th>Thứ</th>
+                                    <th>Sân Tập</th>
+                                    <th>Trạng Thái Điểm Danh</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {roadmap.map((r) => (
+                                    <tr key={r.sessionNumber} className={r.isToday ? 'table-warning' : ''}>
+                                      <td className="fw-bold">Buổi {r.sessionNumber}</td>
+                                      <td>{r.date}</td>
+                                      <td>{r.dayLabel}</td>
+                                      <td className="text-primary">{selectedProgressEnr.courtName || 'Sân Huấn Luyện #3'}</td>
+                                      <td>
+                                        {r.status === 'present' ? (
+                                          <span className="badge bg-success text-white d-inline-flex align-items-center gap-1">
+                                            <Check size={12} /> Có mặt (Present)
+                                          </span>
+                                        ) : r.status === 'absent' ? (
+                                          <span className="badge bg-danger text-white">
+                                            ✕ Vắng mặt (Absent)
+                                          </span>
+                                        ) : r.isToday ? (
+                                          <span className="badge bg-warning text-dark fw-bold">
+                                            ⚡ Diễn ra hôm nay
+                                          </span>
+                                        ) : (
+                                          <span className="badge bg-light text-muted border">
+                                            ⏳ Chưa diễn ra
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* Đánh giá DUPR & Nhận xét của Huấn luyện viên */}
+                            <div className="p-3 bg-light rounded-4 border">
+                              <h6 className="fw-extrabold text-dark mb-2 d-flex align-items-center gap-2">
+                                <Award size={18} className="text-warning" />
+                                <span>Đánh Giá Trình Độ DUPR & Nhận Xét Của HLV</span>
+                              </h6>
+                              <div className="mb-2">
+                                <span className="text-secondary small me-2">Điểm DUPR xếp hạng:</span>
+                                <strong className="badge bg-warning text-dark fs-6">
+                                  {selectedProgressEnr.duprEvaluation || 'Chưa kiểm tra DUPR'}
+                                </strong>
+                              </div>
+                              <div className="p-3 bg-white rounded-3 border">
+                                <div className="text-secondary small mb-1 fw-bold">Nhận xét chi tiết của Huấn luyện viên:</div>
+                                <div className="text-dark fst-italic">
+                                  &quot;{selectedProgressEnr.coachFeedback || 'Huấn luyện viên chưa nhập nhận xét cho học viên này.'}&quot;
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="modal-footer bg-light p-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedProgressEnr(null)}
+                        className="btn btn-secondary fw-semibold px-4"
+                      >
+                        Đóng
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onUpdateEnrollment(selectedProgressEnr.id, { status: 'completed' });
+                          setSelectedProgressEnr((prev) => ({ ...prev, status: 'completed' }));
+                        }}
+                        className="btn btn-success fw-bold px-4"
+                      >
+                        ✓ Đánh Dấu Tốt Nghiệp Khóa Học
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

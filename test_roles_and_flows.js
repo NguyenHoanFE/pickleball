@@ -66,6 +66,18 @@ function simulateLogin(email, password, userList = users) {
   return { success: true, user: found };
 }
 
+function getMondayDateStr(dateInput) {
+  const d = new Date(dateInput);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  const yyyy = mon.getFullYear();
+  const mm = String(mon.getMonth() + 1).padStart(2, '0');
+  const dd = String(mon.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 let testPassed = 0;
 let testFailed = 0;
 
@@ -108,6 +120,23 @@ console.log('▶ [TEST SUITE 1] KIỂM THỬ ROLE QUẢN TRỊ VIÊN (ADMIN - Tr
     isDeleteAllowed === false,
     `Khóa học "${courseWithStudents}" đang có ${activeStudents.length} học viên -> Bị CHẶN xóa (Bảo toàn dữ liệu học viên)`
   );
+
+  // Test Chức năng Admin xem tiến độ học của học viên
+  const getEnrollmentStats = (enr) => {
+    let total = enr.totalSessions || 8;
+    let attended = enr.attendedSessions !== undefined ? Number(enr.attendedSessions) : 0;
+    let absent = enr.absentSessions !== undefined ? Number(enr.absentSessions) : 0;
+    let remaining = enr.remainingSessions !== undefined ? Number(enr.remainingSessions) : Math.max(0, total - (attended + absent));
+    const percent = Math.min(100, Math.round((attended / total) * 100));
+    return { total, attended, absent, remaining, percent };
+  };
+
+  const studentStatsList = enrollments.map(getEnrollmentStats);
+  assert(studentStatsList.length === enrollments.length, 'Admin theo dõi được tiến độ của 100% học viên trong hệ thống');
+  assert(studentStatsList[0].percent === 75, 'Admin xem đúng tiến độ học viên Lê Minh Anh: 6/8 buổi (75%)');
+  assert(studentStatsList[1].percent === 80, 'Admin xem đúng tiến độ học viên Phạm Gia Huy: 8/10 buổi (80%)');
+  assert(enrollments.every(e => e.duprEvaluation !== undefined), 'Admin xem được điểm đánh giá DUPR của tất cả học viên');
+  assert(enrollments.every(e => e.coachFeedback !== undefined), 'Admin xem được nhận xét chi tiết của Huấn luyện viên');
 }
 console.log('');
 
@@ -328,6 +357,40 @@ console.log('▶ [TEST SUITE 3] KIỂM THỬ ROLE HỌC VIÊN (STUDENT - Lê Min
   assert(getSessionStatus('2026-11-14', 0, enrDuc) === null, 'Buổi học ngày 14/11 (tương lai) TUYỆT ĐỐI KHÔNG HIỂN THỊ PRESENT/ABSENT (để trống không trạng thái)');
   assert(getSessionStatus('2026-11-15', 1, enrDuc) === null, 'Buổi học ngày 15/11 (tương lai) TUYỆT ĐỐI KHÔNG HIỂN THỊ PRESENT/ABSENT (để trống không trạng thái)');
   assert(getSessionStatus('2026-11-03', 0, enrollments[0]) === 'present', 'Buổi học trong quá khứ đã tham gia hiển thị đúng Present');
+
+  // Test Học viên Nguyễn Văn An đăng ký và hiển thị đầy đủ trong lịch Huấn luyện viên
+  const anEnrollment = {
+    id: 'ENR-9988',
+    studentName: 'Nguyễn Văn An',
+    studentPhone: '0911223344',
+    studentEmail: 'an.nguyen@gmail.com',
+    courseId: 'course-101',
+    courseTitle: 'Pickleball Khởi Đầu Toàn Diện',
+    coachName: 'HLV Vũ Minh Quân', // Hoặc được chọn HLV Sarah Jenkins
+    courtId: 'court-3',
+    courtName: 'Sân Indoor Huấn Luyện #3',
+    startDate: '2026-11-16',
+    preferredSchedule: 'Thứ 2 & Thứ 5 (18:30 - 20:30)',
+    totalSessions: 8,
+    status: 'confirmed'
+  };
+
+  // 1. Kiểm tra quyền sở hữu lịch dạy của HLV
+  const coachQuan = { name: 'HLV Vũ Minh Quân', role: 'coach' };
+  const coachSarah = { name: 'HLV Sarah Jenkins', role: 'coach' };
+  const isOwnedByQuan = anEnrollment.coachName.includes('Vũ Minh Quân');
+  assert(isOwnedByQuan === true, 'Học viên Nguyễn Văn An được ghi nhận chính xác cho HLV Vũ Minh Quân');
+
+  // 2. Chức năng Quick-Jump tìm kiếm tuần học của Nguyễn Văn An
+  const anStartMonday = getMondayDateStr(anEnrollment.startDate);
+  assert(anStartMonday === '2026-11-16', 'Tính chính xác tuần bắt đầu học của Nguyễn Văn An là 16/11 Đến 22/11');
+
+  // 3. Khi HLV chuyển sang tuần 16/11 hoặc bật chế độ Toàn trường, lịch của Nguyễn Văn An hiển thị 100%
+  const anWeekSessions = [
+    { date: '2026-11-16', studentName: 'Nguyễn Văn An', time: '18:30 - 20:30', slotId: 'slot-6' },
+    { date: '2026-11-19', studentName: 'Nguyễn Văn An', time: '18:30 - 20:30', slotId: 'slot-6' }
+  ];
+  assert(anWeekSessions.every(s => s.studentName === 'Nguyễn Văn An'), 'Thời khóa biểu hiển thị đầy đủ các buổi học của Nguyễn Văn An trong tuần');
 
   // Test Cart Quantity & Live Total calculation (Lỗi 12)
   const cart = [

@@ -160,6 +160,7 @@ export default function RegisterSection({
     phone: '',
     email: '',
     courseId: preselectedCourse ? preselectedCourse.id : courses[0]?.id || '',
+    coachName: '',
     preferredSchedule: 'Thứ 2 & Thứ 5 (18:30 - 20:30) • Giờ Vàng Công Sở',
     preferredCourtId: 'court-3',
     startDate: getUpcomingDateString(),
@@ -193,6 +194,7 @@ export default function RegisterSection({
       setFormData((prev) => ({
         ...prev,
         courseId: preselectedCourse.id,
+        coachName: preselectedCourse.coach || getAssignedCoachForCourse(preselectedCourse),
         preferredSchedule: preselectedCourse.schedule || prev.preferredSchedule
       }));
     }
@@ -323,7 +325,10 @@ export default function RegisterSection({
       const updated = { ...prev, [name]: value };
       if (name === 'courseId') {
         const foundCourse = courses.find((c) => c.id === value);
-        if (foundCourse) updated.preferredSchedule = foundCourse.schedule;
+        if (foundCourse) {
+          updated.preferredSchedule = foundCourse.schedule;
+          updated.coachName = getAssignedCoachForCourse(foundCourse);
+        }
       }
       return updated;
     });
@@ -387,7 +392,7 @@ export default function RegisterSection({
       studentEmail: formData.email.trim(),
       courseId: selectedCourseObj.id,
       courseTitle: selectedCourseObj.title,
-      coachName: assignedCoach || selectedCourseObj.coach || 'Chưa phân công',
+      coachName: formData.coachName || assignedCoach || selectedCourseObj.coach || 'Chưa phân công',
       courtId: selectedCourtObj.id,
       courtName: selectedCourtObj.name,
       preferredCourtId: selectedCourtObj.id,
@@ -649,6 +654,29 @@ export default function RegisterSection({
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  {/* Chọn Huấn luyện viên phụ trách */}
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <label className="form-label fw-bold text-dark small mb-0">
+                        Huấn luyện viên phụ trách lớp <span className="text-danger">*</span>
+                      </label>
+                      <span className="badge bg-primary-subtle text-primary fw-semibold" style={{ fontSize: '0.72rem' }}>
+                        Tự do chọn HLV yêu thích
+                      </span>
+                    </div>
+                    <select
+                      name="coachName"
+                      value={formData.coachName || assignedCoach}
+                      onChange={handleChange}
+                      className="form-select fw-semibold"
+                    >
+                      <option value="HLV Vũ Minh Quân">HLV Vũ Minh Quân — Chuẩn hóa Footwork & Khối Cơ bản (DUPR 4.65)</option>
+                      <option value="HLV Sarah Jenkins">HLV Sarah Jenkins — IPTPA Master Instructor, VIP 1 Kèm 1 & Kỹ thuật Dinking (DUPR 5.00)</option>
+                      <option value="HLV Nguyễn Hoàng Nam">HLV Nguyễn Hoàng Nam — Cựu VĐV Quốc gia, Nâng cao & Chiến thuật Match Play (DUPR 5.15)</option>
+                      <option value="HLV Lê Phương Thảo">HLV Lê Phương Thảo — Chuyên gia Phái đẹp & Trại huấn luyện Thiếu nhi (DUPR 4.50)</option>
+                    </select>
                   </div>
 
                   {/* Trình độ hiện tại */}
