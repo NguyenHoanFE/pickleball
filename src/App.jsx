@@ -193,6 +193,7 @@ function AppLayout({
         {activeTab === 'register' && (
           <RegisterSection
             courses={courses}
+            courts={courts}
             preselectedCourse={preselectedCourse}
             onAddEnrollment={handleAddEnrollment}
             enrollments={enrollments}
@@ -333,17 +334,28 @@ export default function App() {
         return INITIAL_ENROLLMENTS;
       }
 
-      // Check and sync predefined records (ENR-2001 -> ENR-2005) so Nguyễn Minh Đức is mapped to HLV Sarah Jenkins (1 Kèm 1)
+      // Check and sync predefined records (ENR-2001 -> ENR-2005)
       const initialMap = new Map(INITIAL_ENROLLMENTS.map((e) => [e.id, e]));
       const migrated = list.map((e) => {
         if (initialMap.has(e.id)) {
           const fresh = initialMap.get(e.id);
+          // Cho học viên Nguyễn Minh Đức (ENR-2003): ngày bắt đầu là 14/11 (tương lai), bắt buộc reset số buổi đã học về 0
+          if (e.id === 'ENR-2003') {
+            return {
+              ...fresh,
+              courtId: e.courtId || fresh.courtId,
+              courtName: e.courtName || fresh.courtName
+            };
+          }
           return {
             ...fresh,
+            courtId: e.courtId || fresh.courtId,
+            courtName: e.courtName || fresh.courtName,
             attendance: e.attendance || fresh.attendance,
             attendedSessions: e.attendedSessions !== undefined ? e.attendedSessions : fresh.attendedSessions,
             absentSessions: e.absentSessions !== undefined ? e.absentSessions : fresh.absentSessions,
             remainingSessions: e.remainingSessions !== undefined ? e.remainingSessions : fresh.remainingSessions,
+            sessionsList: e.sessionsList || fresh.sessionsList,
             duprEvaluation: e.duprEvaluation || fresh.duprEvaluation,
             coachFeedback: e.coachFeedback || fresh.coachFeedback,
             status: e.status || fresh.status
@@ -360,7 +372,7 @@ export default function App() {
       });
 
       try {
-        localStorage.setItem('vp_academy_enrollments_v3', JSON.stringify(migrated));
+        localStorage.setItem('vp_academy_enrollments_v4', JSON.stringify(migrated));
       } catch {}
 
       return migrated;

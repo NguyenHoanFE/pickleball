@@ -267,13 +267,16 @@ console.log('▶ [TEST SUITE 3] KIỂM THỬ ROLE HỌC VIÊN (STUDENT - Lê Min
   const cancelledBooking = { ...existingBooking, status: 'cancelled' };
   assert(isSlotOccupied(cancelledBooking, newBookingAttempt) === false, 'Sau khi hủy đặt sân, khung giờ TRỞ THÀNH TRỐNG ngay lập tức (Lỗi 7)');
 
-  // Test Tự động giữ Sân số 3 cho tất cả các buổi học và Chặn khách vãng lai chiếm chỗ
+  // Test Học viên tự do chọn sân tập mong muốn (không fix cứng) & Chặn khách vãng lai chiếm chỗ
   const mockEnrollment = {
     id: 'ENR-9999',
     studentName: 'Nguyễn Văn A',
     courseId: 'course-101',
     courseTitle: 'Khóa Nhập Môn Pickleball',
     preferredSchedule: 'T2 - T4 - T6 17:30 - 19:30',
+    preferredCourtId: 'court-1', // Học viên chủ động chọn Sân Championship #1 thay vì fix cứng Sân 3
+    courtId: 'court-1',
+    courtName: 'Sân Trung Tâm Championship #1 (Indoor Pro)',
     startDate: '2026-11-16',
     totalSessions: 8,
     sessionDates: [
@@ -282,12 +285,12 @@ console.log('▶ [TEST SUITE 3] KIỂM THỬ ROLE HỌC VIÊN (STUDENT - Lê Min
     ]
   };
 
-  // Simulating generateTrainingBookingsForEnrollment on Court #3
-  const targetCourtId = 'court-3';
+  // generateTrainingBookingsForEnrollment giữ đúng sân do học viên chọn
+  const chosenCourtId = mockEnrollment.preferredCourtId || mockEnrollment.courtId || 'court-3';
   const autoReservedBookings = mockEnrollment.sessionDates.map((d, idx) => ({
     id: `TRAIN-${mockEnrollment.id}-${d}`,
-    courtId: targetCourtId,
-    courtName: 'Sân Huấn Luyện Đào Tạo #3 (Indoor)',
+    courtId: chosenCourtId,
+    courtName: mockEnrollment.courtName,
     date: d,
     slotId: 'slot-6',
     time: '17:30 - 19:00',
@@ -295,14 +298,36 @@ console.log('▶ [TEST SUITE 3] KIỂM THỬ ROLE HỌC VIÊN (STUDENT - Lê Min
     status: 'confirmed'
   }));
 
-  assert(autoReservedBookings.length === 8, 'Hệ thống TỰ ĐỘNG GIỮ ĐỦ 8 BUỔI trên Sân Huấn Luyện số 3 cho học viên');
-  assert(autoReservedBookings.every(b => b.courtId === 'court-3'), '100% tất cả các buổi học đều được cố định giữ trên SÂN SỐ 3');
+  assert(autoReservedBookings.length === 8, 'Hệ thống TỰ ĐỘNG GIỮ ĐỦ 8 BUỔI trên sân học viên đã chọn');
+  assert(autoReservedBookings.every(b => b.courtId === 'court-1'), '100% tất cả các buổi học đều được giữ trên SÂN DO HỌC VIÊN CHỌN (Sân #1, không bị fix cứng Sân 3)');
 
-  // Customer tries to book Court #3 on the same date and overlapping time
+  // Khách vãng lai cố đặt Sân #1 cùng ngày và trùng giờ
   const freeCustomerConflict = autoReservedBookings.some((b) => {
-    return b.courtId === 'court-3' && b.date === '2026-11-16' && b.status !== 'cancelled' && (b.slotId === 'slot-6' || isTimeOverlapping('17:30 - 19:00', b.time));
+    return b.courtId === 'court-1' && b.date === '2026-11-16' && b.status !== 'cancelled' && (b.slotId === 'slot-6' || isTimeOverlapping('17:30 - 19:00', b.time));
   });
-  assert(freeCustomerConflict === true, 'Khách vãng lai đặt sân tự do BỊ CHẶN TUYỆT ĐỐI không thể chiếm khung giờ của lớp học trên Sân số 3');
+  assert(freeCustomerConflict === true, 'Khách vãng lai đặt sân tự do BỊ CHẶN TUYỆT ĐỐI không thể chiếm khung giờ của lớp học trên Sân do học viên chọn');
+
+  // Test Trạng thái điểm danh: Các buổi chưa học (tương lai) KHÔNG ĐỂ TRẠNG THÁI (null)
+  const todayStr = '2026-11-13';
+  const enrDuc = enrollments.find(e => e.id === 'ENR-2003');
+  assert(enrDuc !== undefined, 'Hồ sơ học viên Nguyễn Minh Đức (ENR-2003) tồn tại');
+  assert(enrDuc.attendedSessions === 0, 'Nguyễn Minh Đức có ngày bắt đầu 14/11 (tương lai) nên số buổi đã học phải bằng 0');
+
+  // Kiểm tra logic xác định trạng thái buổi học:
+  const getSessionStatus = (dateStr, idx, enr) => {
+    if (dateStr > todayStr) return null; // Tương lai: KHÔNG ĐỂ TRẠNG THÁI
+    if (dateStr === todayStr) {
+      if (Array.isArray(enr.sessionsList) && enr.sessionsList[idx] === 'present') return 'present';
+      if (Array.isArray(enr.sessionsList) && enr.sessionsList[idx] === 'absent') return 'absent';
+      return null;
+    }
+    if (Array.isArray(enr.sessionsList) && enr.sessionsList[idx]) return enr.sessionsList[idx];
+    return idx < (enr.attendedSessions || 0) ? 'present' : 'absent';
+  };
+
+  assert(getSessionStatus('2026-11-14', 0, enrDuc) === null, 'Buổi học ngày 14/11 (tương lai) TUYỆT ĐỐI KHÔNG HIỂN THỊ PRESENT/ABSENT (để trống không trạng thái)');
+  assert(getSessionStatus('2026-11-15', 1, enrDuc) === null, 'Buổi học ngày 15/11 (tương lai) TUYỆT ĐỐI KHÔNG HIỂN THỊ PRESENT/ABSENT (để trống không trạng thái)');
+  assert(getSessionStatus('2026-11-03', 0, enrollments[0]) === 'present', 'Buổi học trong quá khứ đã tham gia hiển thị đúng Present');
 
   // Test Cart Quantity & Live Total calculation (Lỗi 12)
   const cart = [

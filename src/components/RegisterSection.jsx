@@ -17,7 +17,7 @@ import {
   Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { calculateCourseDates, getAssignedCoachForCourse, checkScheduleSlotConflict } from '../data/courts';
+import { calculateCourseDates, getAssignedCoachForCourse, checkScheduleSlotConflict, INITIAL_COURTS } from '../data/courts';
 
 export const TIME_SLOT_GROUPS = [
   {
@@ -137,6 +137,7 @@ export const TIME_SLOT_GROUPS = [
 
 export default function RegisterSection({
   courses,
+  courts = [],
   preselectedCourse,
   onAddEnrollment,
   enrollments = [],
@@ -160,6 +161,7 @@ export default function RegisterSection({
     email: '',
     courseId: preselectedCourse ? preselectedCourse.id : courses[0]?.id || '',
     preferredSchedule: 'Thứ 2 & Thứ 5 (18:30 - 20:30) • Giờ Vàng Công Sở',
+    preferredCourtId: 'court-3',
     startDate: getUpcomingDateString(),
     experienceLevel: 'Người mới bắt đầu (Chưa từng chơi)',
     notes: ''
@@ -172,6 +174,18 @@ export default function RegisterSection({
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [submittedRecord, setSubmittedRecord] = useState(null);
+
+  const availableCourts = useMemo(() => {
+    return Array.isArray(courts) && courts.length > 0 ? courts : INITIAL_COURTS;
+  }, [courts]);
+
+  const selectedCourtObj = useMemo(() => {
+    return (
+      availableCourts.find((c) => c.id === formData.preferredCourtId) ||
+      availableCourts.find((c) => c.id === 'court-3') ||
+      availableCourts[0]
+    );
+  }, [availableCourts, formData.preferredCourtId]);
 
   // Sync preselected course or current logged-in user
   useEffect(() => {
@@ -214,9 +228,10 @@ export default function RegisterSection({
       startDate: formData.startDate,
       sessionCount,
       enrollments,
-      courtBookings
+      courtBookings,
+      courtId: formData.preferredCourtId
     });
-  }, [assignedCoach, formData.preferredSchedule, formData.startDate, sessionCount, enrollments, courtBookings]);
+  }, [assignedCoach, formData.preferredSchedule, formData.startDate, sessionCount, enrollments, courtBookings, formData.preferredCourtId]);
 
   // Item 8: Detect if student already has an active enrollment in this specific course
   const isAlreadyEnrolled = useMemo(() => {
@@ -373,6 +388,9 @@ export default function RegisterSection({
       courseId: selectedCourseObj.id,
       courseTitle: selectedCourseObj.title,
       coachName: assignedCoach || selectedCourseObj.coach || 'Chưa phân công',
+      courtId: selectedCourtObj.id,
+      courtName: selectedCourtObj.name,
+      preferredCourtId: selectedCourtObj.id,
       tuition: selectedCourseObj.tuition,
       preferredSchedule: formData.preferredSchedule,
       startDate: calculatedDates.startDate,
@@ -382,6 +400,9 @@ export default function RegisterSection({
       attendedSessions: 0,
       absentSessions: 0,
       remainingSessions: sessionCount,
+      sessionsList: Array(sessionCount).fill('pending'),
+      duprEvaluation: 'Chưa đánh giá',
+      coachFeedback: 'Học viên chuẩn bị bắt đầu buổi học đầu tiên.',
       experienceLevel: formData.experienceLevel,
       notes: formData.notes.trim() || 'Không có ghi chú thêm',
       status: 'confirmed',
@@ -462,7 +483,7 @@ export default function RegisterSection({
 
                       <div className="col-sm-4 text-secondary">Sân tập phân bổ:</div>
                       <div className="col-sm-8 fw-bold text-primary">
-                        🏟️ Sân Indoor Huấn Luyện #3 (Đã tự động giữ sân toàn khóa)
+                        🏟️ {submittedRecord.courtName || 'Sân Huấn Luyện #3'} (Đã tự động giữ sân toàn khóa)
                       </div>
 
                       <div className="col-sm-4 text-secondary">Học phí trọn khóa:</div>
@@ -478,7 +499,7 @@ export default function RegisterSection({
                   <div className="alert alert-success d-flex align-items-center gap-2 small text-start mb-4 rounded-3 border-0 shadow-xs">
                     <ShieldCheck size={22} className="text-success flex-shrink-0" />
                     <div>
-                      <strong>Đặc quyền khóa học trọn gói:</strong> Học phí đã bao gồm tiền thuê sân và bóng tập. Học viện đã tự động giữ sân cố định theo ca học bạn đã chọn, học viên không cần phải tự đặt sân!
+                      <strong>Đặc quyền khóa học trọn gói:</strong> Học phí đã bao gồm tiền thuê sân và bóng tập. Học viện đã tự động giữ sân tại <strong>{submittedRecord.courtName || 'Sân Huấn Luyện #3'}</strong> cố định theo ca học bạn đã chọn, học viên không cần phải tự đặt sân!
                     </div>
                   </div>
 
@@ -929,10 +950,92 @@ export default function RegisterSection({
                     </div>
                   </div>
 
-                  {/* 5. Ghi chú */}
+                  {/* 5. Chọn Sân Tập Mong Muốn (Tự Do Chọn Sân - Không Fix Cứng) */}
+                  <div className="mb-4">
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <label className="form-label fw-bold text-dark small mb-0 d-flex align-items-center gap-2">
+                        <span className="badge bg-primary text-white rounded-circle p-1" style={{ width: '20px', height: '20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>5</span>
+                        <span>Chọn Sân Tập Mong Muốn (Tự Do Chọn Sân Toàn Khóa) *</span>
+                      </label>
+                      <span className="badge bg-success-subtle text-success border border-success-subtle fw-semibold" style={{ fontSize: '0.72rem' }}>
+                        ✓ Học viện tự động giữ sân
+                      </span>
+                    </div>
+                    <p className="text-secondary small mb-3">
+                      Học viên có thể tự do lựa chọn cụm sân theo sở thích (Sân VIP Điều hòa, Sân Mái che, Máy bắn bóng Titan...). Học viện sẽ tự động giữ đúng sân bạn chọn trong suốt {sessionCount} buổi học!
+                    </p>
+
+                    <div className="row g-3">
+                      {availableCourts.map((c) => {
+                        const isSelected = formData.preferredCourtId === c.id;
+                        return (
+                          <div key={c.id} className="col-md-6">
+                            <div
+                              onClick={() => {
+                                setFormData((prev) => ({ ...prev, preferredCourtId: c.id }));
+                              }}
+                              className={`p-3 rounded-4 border h-100 transition-all ${
+                                isSelected
+                                  ? 'bg-success bg-opacity-10 border-success shadow-sm'
+                                  : 'bg-white border-secondary-subtle hover-shadow-sm'
+                              }`}
+                              style={{
+                                cursor: 'pointer',
+                                borderWidth: isSelected ? '2px' : '1px'
+                              }}
+                            >
+                              <div className="d-flex gap-3 align-items-start">
+                                <img
+                                  src={c.image}
+                                  alt={c.name}
+                                  className="rounded-3 object-fit-cover shadow-xs"
+                                  style={{ width: '70px', height: '70px', flexShrink: 0 }}
+                                />
+                                <div className="flex-grow-1 overflow-hidden">
+                                  <div className="d-flex align-items-center justify-content-between mb-1">
+                                    <span className="badge bg-primary-subtle text-primary fw-bold" style={{ fontSize: '0.68rem' }}>
+                                      {c.type}
+                                    </span>
+                                    {isSelected && (
+                                      <span className="badge bg-success text-white d-flex align-items-center gap-1 shadow-xs" style={{ fontSize: '0.7rem' }}>
+                                        <Check size={12} /> Đang chọn
+                                      </span>
+                                    )}
+                                  </div>
+                                  <h6 className="fw-bold text-dark mb-1 text-truncate" style={{ fontSize: '0.86rem' }} title={c.name}>
+                                    {c.name}
+                                  </h6>
+                                  <div className="text-muted small text-truncate mb-2" style={{ fontSize: '0.73rem' }}>
+                                    {c.surface}
+                                  </div>
+                                  <div className="d-flex flex-wrap gap-1">
+                                    {c.amenities && c.amenities.slice(0, 2).map((a, i) => (
+                                      <span key={i} className="badge bg-light text-secondary border" style={{ fontSize: '0.65rem' }}>
+                                        {a}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-3 p-2 px-3 bg-white rounded-3 border d-flex align-items-center justify-content-between">
+                      <div className="small">
+                        <span className="text-secondary">Sân tập đã chọn: </span>
+                        <strong className="text-primary">🏟️ {selectedCourtObj.name}</strong>
+                      </div>
+                      <span className="badge bg-primary-subtle text-primary fw-semibold">Được giữ cố định toàn khóa</span>
+                    </div>
+                  </div>
+
+                  {/* 6. Ghi chú */}
                   <div className="mb-4">
                     <label className="form-label fw-bold text-dark small">
-                      5. Ghi chú thêm (Nhu cầu mượn vợt, mục tiêu học tập, học nhóm...)
+                      6. Ghi chú thêm (Nhu cầu mượn vợt, mục tiêu học tập, học nhóm...)
                     </label>
                     <div className="input-group">
                       <span className="input-group-text bg-light align-items-start pt-2">
@@ -1026,7 +1129,7 @@ export default function RegisterSection({
                   <div className="p-2 bg-primary-subtle text-primary rounded-3 small mb-3 border border-primary-subtle d-flex align-items-center gap-2">
                     <ShieldCheck size={18} className="text-primary flex-shrink-0" />
                     <div style={{ fontSize: '0.74rem' }}>
-                      <strong>Bao gồm tiền sân trọn gói:</strong> Học viện tự động giữ sân tại <strong>Sân Huấn Luyện #3</strong> theo ca học bạn chọn. Không cần tự đặt sân!
+                      <strong>Bao gồm tiền sân trọn gói:</strong> Học viện tự động giữ sân tại <strong>{selectedCourtObj.name}</strong> theo ca học bạn chọn. Không cần tự đặt sân!
                     </div>
                   </div>
 

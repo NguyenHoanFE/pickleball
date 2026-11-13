@@ -284,7 +284,62 @@ export default function CoachPortalSection({
           timeStatus = 'today';
         }
 
-        const isAttended = idx < (enr.attendedSessions || 0);
+        // Trạng thái điểm danh (Present / Absent / Chưa có trạng thái):
+        // 1. Tương lai (dateStr > todayDateStr): TUYỆT ĐỐI KHÔNG ĐỂ TRẠNG THÁI (null) - đến ngày học mới điểm danh
+        // 2. Hôm nay (dateStr === todayDateStr): Chỉ hiển thị nếu HLV đã bấm điểm danh lưu trong sessionsList
+        // 3. Quá khứ (dateStr < todayDateStr): Hiển thị Present (nếu có mặt) hoặc Absent (nếu vắng)
+        let sessionAttendanceStatus = null;
+        if (dateStr < todayDateStr) {
+          if (Array.isArray(enr.sessionsList) && enr.sessionsList[idx]) {
+            const recorded = enr.sessionsList[idx];
+            if (recorded === 'present') sessionAttendanceStatus = 'present';
+            else if (recorded === 'absent') sessionAttendanceStatus = 'absent';
+          } else {
+            if (idx < (enr.attendedSessions || 0)) {
+              sessionAttendanceStatus = 'present';
+            } else {
+              sessionAttendanceStatus = 'absent';
+            }
+          }
+        } else if (dateStr === todayDateStr) {
+          if (Array.isArray(enr.sessionsList) && enr.sessionsList[idx]) {
+            const recorded = enr.sessionsList[idx];
+            if (recorded === 'present') sessionAttendanceStatus = 'present';
+            else if (recorded === 'absent') sessionAttendanceStatus = 'absent';
+          }
+        } else {
+          sessionAttendanceStatus = null;
+        }
+
+        const isAttended = sessionAttendanceStatus === 'present';
+
+        // Lấy tên sân tập thực tế do học viên chọn hoặc phân bổ (không fix cứng)
+        const courtName =
+          enr.courtName ||
+          (enr.courtId === 'court-1'
+            ? 'Sân Trung Tâm Championship #1 (Indoor Pro)'
+            : enr.courtId === 'court-2'
+            ? 'Sân Indoor Tiêu Chuẩn #2 (Air-Conditioned)'
+            : enr.courtId === 'court-4'
+            ? 'Sân Mái Che Khí Động Học #4 (Covered Roof)'
+            : enr.courtId === 'court-5'
+            ? 'Sân Mái Che Kỹ Thuật #5 (Máy Bắn Bóng Titan)'
+            : enr.courtId === 'court-6'
+            ? 'Sân Giao Lưu Cộng Đồng #6 (Outdoor Breezy)'
+            : 'Sân Indoor Huấn Luyện #3 (Air-Conditioned)');
+
+        const courtShortName =
+          enr.courtId === 'court-1'
+            ? 'Sân Championship #1'
+            : enr.courtId === 'court-2'
+            ? 'Sân Tiêu Chuẩn #2'
+            : enr.courtId === 'court-4'
+            ? 'Sân Mái Che #4'
+            : enr.courtId === 'court-5'
+            ? 'Sân Kỹ Thuật #5'
+            : enr.courtId === 'court-6'
+            ? 'Sân Giao Lưu #6'
+            : 'Sân Huấn Luyện #3';
 
         const slotId = mapScheduleToSlotId(matchedSlot.time || enr.preferredSchedule);
         let courseCode = (enr.courseId || '').replace('course-', '').toUpperCase();
@@ -311,6 +366,9 @@ export default function CoachPortalSection({
           time: matchedSlot.time,
           timeFormatted,
           slotId,
+          courtId: enr.courtId || 'court-3',
+          courtName,
+          courtShortName,
           courseId: enr.courseId,
           courseCode,
           courseTitle: enr.courseTitle,
@@ -323,6 +381,7 @@ export default function CoachPortalSection({
           isOwner,
           timeStatus,
           isAttended,
+          sessionAttendanceStatus,
           experienceLevel: enr.experienceLevel,
           notes: enr.notes,
           enrollmentStatus: enr.status,
@@ -1030,18 +1089,18 @@ export default function CoachPortalSection({
                   </span>
                   <span className="d-inline-flex align-items-center gap-1 text-success fw-semibold">
                     <CheckCircle2 size={14} className="text-success" />
-                    <span>Present (Đã học)</span>
+                    <span>Present (Có mặt)</span>
                   </span>
                   <span className="d-inline-flex align-items-center gap-1 text-danger fw-semibold">
                     <X size={14} className="text-danger" />
                     <span>Absent (Vắng)</span>
                   </span>
-                  <span className="d-inline-flex align-items-center gap-1 text-primary fw-semibold">
-                    <Clock size={14} className="text-primary" />
-                    <span>Sắp tới (Tương lai)</span>
+                  <span className="d-inline-flex align-items-center gap-1 text-muted">
+                    <span className="border rounded px-1 text-secondary bg-light" style={{ fontSize: '0.7rem' }}>Không badge</span>
+                    <span>Chưa học (Đến ngày mới điểm danh)</span>
                   </span>
                   <span className="d-inline-flex align-items-center gap-1 text-secondary">
-                    <span>📍 Sân Huấn Luyện #3 (Cố định)</span>
+                    <span>📍 Sân tập học viên chọn (Không fix cứng)</span>
                   </span>
                 </div>
 
@@ -1165,9 +1224,9 @@ export default function CoachPortalSection({
                                               </span>
                                             </div>
 
-                                            {/* Attendance Status: Present vs Absent vs Sắp tới */}
-                                            <div className="mb-1">
-                                              {s.isAttended ? (
+                                            {/* Attendance Status: Chỉ hiển thị Present hoặc Absent khi đã điểm danh. Buổi chưa học hoặc chưa điểm danh => HOÀN TOÀN KHÔNG ĐỂ TRẠNG THÁI */}
+                                            {s.sessionAttendanceStatus === 'present' && (
+                                              <div className="mb-1">
                                                 <span
                                                   className="text-success fw-bold d-inline-flex align-items-center gap-1"
                                                   style={{ fontSize: '0.72rem' }}
@@ -1175,7 +1234,10 @@ export default function CoachPortalSection({
                                                   <CheckCircle2 size={13} className="text-success" />
                                                   <span>Present</span>
                                                 </span>
-                                              ) : s.isPast ? (
+                                              </div>
+                                            )}
+                                            {s.sessionAttendanceStatus === 'absent' && (
+                                              <div className="mb-1">
                                                 <span
                                                   className="text-danger fw-bold d-inline-flex align-items-center gap-1"
                                                   style={{ fontSize: '0.72rem' }}
@@ -1183,16 +1245,8 @@ export default function CoachPortalSection({
                                                   <X size={13} className="text-danger" />
                                                   <span>Absent</span>
                                                 </span>
-                                              ) : (
-                                                <span
-                                                  className="text-primary fw-bold d-inline-flex align-items-center gap-1"
-                                                  style={{ fontSize: '0.72rem' }}
-                                                >
-                                                  <Clock size={13} className="text-primary" />
-                                                  <span>Sắp tới</span>
-                                                </span>
-                                              )}
-                                            </div>
+                                              </div>
+                                            )}
 
                                             {/* Time: 09h00-10h30 - Offline */}
                                             <div
@@ -1202,9 +1256,9 @@ export default function CoachPortalSection({
                                               ⏰ {s.timeFormatted} - Offline
                                             </div>
 
-                                            {/* Court: DE-332 style */}
-                                            <div className="text-secondary mb-1" style={{ fontSize: '0.72rem' }}>
-                                              📍 Sân Huấn Luyện #3
+                                            {/* Court: Dynamic Court chosen by student */}
+                                            <div className="text-secondary mb-1 text-truncate" style={{ fontSize: '0.72rem' }} title={s.courtName}>
+                                              📍 {s.courtShortName || s.courtName}
                                             </div>
 
                                             {/* Student Name */}
@@ -1226,15 +1280,32 @@ export default function CoachPortalSection({
 
                                           {/* Attendance Button if Coach is Owner */}
                                           {s.isOwner ? (
-                                            <button
-                                              type="button"
-                                              onClick={() => openGradingModal(s.enrollment)}
-                                              className="btn btn-sm btn-outline-primary py-0 px-2 fw-bold mt-2 w-100 d-flex align-items-center justify-content-center gap-1 shadow-xs"
-                                              style={{ fontSize: '0.68rem' }}
-                                            >
-                                              <Edit3 size={11} />
-                                              <span>Điểm danh</span>
-                                            </button>
+                                            s.timeStatus === 'future' ? (
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  alert(
+                                                    `Buổi học số ${s.sessionIndex} diễn ra vào ${s.dayLabel} (${s.dateFormatted}).\n\nChỉ đến ngày diễn ra buổi học, Huấn luyện viên mới được phép điểm danh!`
+                                                  )
+                                                }
+                                                className="btn btn-sm btn-light border py-0 px-2 text-muted mt-2 w-100 d-flex align-items-center justify-content-center gap-1 shadow-xs"
+                                                style={{ fontSize: '0.68rem' }}
+                                                title="Buổi học chưa diễn ra - Đến ngày này mới được điểm danh"
+                                              >
+                                                <Clock size={11} className="text-muted" />
+                                                <span>Chưa đến ngày</span>
+                                              </button>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                onClick={() => openGradingModal(s.enrollment)}
+                                                className="btn btn-sm btn-outline-primary py-0 px-2 fw-bold mt-2 w-100 d-flex align-items-center justify-content-center gap-1 shadow-xs"
+                                                style={{ fontSize: '0.68rem' }}
+                                              >
+                                                <Edit3 size={11} />
+                                                <span>{s.timeStatus === 'today' ? 'Điểm danh hôm nay' : 'Cập nhật điểm danh'}</span>
+                                              </button>
+                                            )
                                           ) : (
                                             <div
                                               className="text-muted text-center py-1 mt-1 border-top"
@@ -1339,7 +1410,7 @@ export default function CoachPortalSection({
                                       🕒 {s.time}
                                     </span>
                                     <span className="badge bg-light text-primary border border-primary-subtle">
-                                      🏟️ Sân Huấn Luyện #3 (Cố định)
+                                      🏟️ {s.courtName}
                                     </span>
                                     {s.isOwner ? (
                                       <span className="badge bg-success-subtle text-success fw-bold">
@@ -1502,8 +1573,9 @@ export default function CoachPortalSection({
                                   <div
                                     className="badge bg-light text-primary border border-primary-subtle my-1 w-100 text-truncate text-start"
                                     style={{ fontSize: '0.66rem' }}
+                                    title={s.courtName}
                                   >
-                                    🏟️ Sân Huấn Luyện #3 (Tự động giữ sân)
+                                    🏟️ {s.courtName}
                                   </div>
 
                                   <div className="small text-secondary mt-1">

@@ -195,7 +195,8 @@ export const checkScheduleSlotConflict = ({
   sessionCount = 8,
   enrollments = [],
   courtBookings = [],
-  ignoreEnrollmentId = null
+  ignoreEnrollmentId = null,
+  courtId = null
 }) => {
   if (!scheduleStr || !coachName) {
     return { hasConflict: false, conflictingDates: [], reason: '' };
@@ -220,18 +221,29 @@ export const checkScheduleSlotConflict = ({
       return isTimeOverlapping(scheduleStr, b.time);
     });
 
-    // 2. Kiểm tra xem các sân huấn luyện có bị chiếm trọn không
-    const isCourt3Busy = courtBookings.some((b) => {
-      return b.status !== 'cancelled' && b.date === dateStr && b.courtId === 'court-3' && isTimeOverlapping(scheduleStr, b.time);
-    });
-    const isCourt2Busy = courtBookings.some((b) => {
-      return b.status !== 'cancelled' && b.date === dateStr && b.courtId === 'court-2' && isTimeOverlapping(scheduleStr, b.time);
-    });
+    // 2. Kiểm tra sân tập: nếu học viên đã chọn sân mong muốn cụ thể, kiểm tra chính xác sân đó
+    let isSelectedCourtBusy = false;
+    if (courtId) {
+      isSelectedCourtBusy = courtBookings.some((b) => {
+        if (b.status === 'cancelled') return false;
+        if (ignoreEnrollmentId && b.enrollmentId === ignoreEnrollmentId) return false;
+        return b.date === dateStr && b.courtId === courtId && isTimeOverlapping(scheduleStr, b.time);
+      });
+    } else {
+      // Mặc định kiểm tra cụm sân huấn luyện chính
+      const isCourt3Busy = courtBookings.some((b) => {
+        return b.status !== 'cancelled' && b.date === dateStr && b.courtId === 'court-3' && isTimeOverlapping(scheduleStr, b.time);
+      });
+      const isCourt2Busy = courtBookings.some((b) => {
+        return b.status !== 'cancelled' && b.date === dateStr && b.courtId === 'court-2' && isTimeOverlapping(scheduleStr, b.time);
+      });
+      isSelectedCourtBusy = isCourt3Busy && isCourt2Busy;
+    }
 
     if (hasCoachConflictOnDate) {
       coachConflictCount++;
       conflictingDates.push(dateStr);
-    } else if (isCourt3Busy && isCourt2Busy) {
+    } else if (isSelectedCourtBusy) {
       courtConflictCount++;
       conflictingDates.push(dateStr);
     }
@@ -242,7 +254,9 @@ export const checkScheduleSlotConflict = ({
   if (coachConflictCount > 0) {
     reason = `HLV ${coachName} đã có ca dạy khác trùng giờ vào ${coachConflictCount} buổi học trên lịch này.`;
   } else if (courtConflictCount > 0) {
-    reason = `Cụm sân huấn luyện đã có lớp khác đặt kín vào ${courtConflictCount} buổi học trên lịch này.`;
+    reason = courtId
+      ? `Sân bạn chọn đã có người đặt trước trùng giờ vào ${courtConflictCount} buổi học trên lộ trình này. Bạn có thể chọn sân khác hoặc đổi ca.`
+      : `Cụm sân huấn luyện đã có lớp khác đặt kín vào ${courtConflictCount} buổi học trên lịch này.`;
   }
 
   return {
@@ -310,8 +324,11 @@ export const generateTrainingBookingsForEnrollment = (
   if (!enrollment || !enrollment.preferredSchedule) return [];
   const targetSlotId = mapScheduleToSlotId(enrollment.preferredSchedule);
   const targetSlot = slotsList.find((s) => s.id === targetSlotId) || slotsList[6];
-  // Ưu tiên Sân Huấn Luyện #3 chuyên dụng của học viện
+
+  // Học viên tự do chọn sân mong muốn, không fix cứng; nếu không chọn sẽ ưu tiên Sân #3
+  const selectedCourtId = enrollment.courtId || enrollment.preferredCourtId;
   const targetCourt =
+    (selectedCourtId && courtsList.find((c) => c.id === selectedCourtId)) ||
     courtsList.find((c) => c.id === 'court-3') ||
     courtsList.find((c) => c.id === 'court-2') ||
     courtsList[0];
