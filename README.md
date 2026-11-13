@@ -15,7 +15,7 @@
 
 ## 📑 MỤC LỤC TÀI LIỆU (TABLE OF CONTENTS)
 
-1. [Tổng quan Đề tài & Nghiệp vụ Hệ sinh thái Đào tạo (BA Analysis)](#1-tổng-quan-đề-tài--nghiệp-vụ-hệ-sinh-thái-đào-tạo-ba-analysis)
+1. [Tổng quan Đề tài, Phân Tích Nghiệp Vụ (BA) & Lý Do Lựa Chọn Các Chức Năng](#1-tổng-quan-đề-tài-phân-tích-nghiệp-vụ-ba--lý-do-lựa-chọn-các-chức-năng)
 2. [Cấu trúc Mã nguồn & Kiến trúc Component (Architecture)](#2-cấu-trúc-mã-nguồn--kiến-trúc-component-architecture)
 3. [Bảng Phân Quyền & 11 Tài khoản Hệ thống (Root Credentials)](#3-bảng-phân-quyền--11-tài-khoản-hệ-thống-root-credentials)
 4. [Các Phân Hệ Chức Năng Nổi Bật (Core Modules)](#4-các-phân-hệ-chức-năng-nổi-bật-core-modules)
@@ -27,9 +27,18 @@
 
 ---
 
-## 1. Tổng quan Đề tài & Nghiệp vụ Hệ sinh thái Đào tạo (BA Analysis)
+## 1. Tổng quan Đề tài, Phân Tích Nghiệp Vụ (BA) & Lý Do Lựa Chọn Các Chức Năng
 
-Dưới góc nhìn của **Chuyên viên Phân tích Nghiệp vụ (Business Analyst - BA)** khảo sát thị trường thể thao Pickleball bùng nổ tại Việt Nam, một học viện đào tạo chuyên nghiệp không thể chỉ dừng lại ở một trang landing page giới thiệu tĩnh. Nhóm đã nghiên cứu và hiện thực hóa mô hình **Hệ sinh thái Đào tạo khép kín (All-in-One Pickleball Academy Platform)**:
+### 1.1. Bối cảnh & Yêu cầu Đề tài Ban đầu
+Theo yêu cầu tiêu chuẩn của đồ án môn học, hệ thống cần đáp ứng tối thiểu 4 trang cơ bản:
+* **Trang chủ (`Home`):** Giới thiệu thông tin học viện và dịch vụ.
+* **Khóa đào tạo (`Courses`):** Danh sách các khóa học Pickleball.
+* **Đăng ký học (`Register`):** Biểu mẫu ghi danh khóa học.
+* **Giới thiệu & Liên hệ (`About & Contact`):** Thông tin đơn vị và biểu mẫu phản hồi.
+
+Tuy nhiên, dưới góc nhìn của **Chuyên viên Phân tích Nghiệp vụ (Business Analyst - BA)** khảo sát thị trường thể thao Pickleball bùng nổ tại Việt Nam, nhóm nhận thấy một học viện đào tạo chuyên nghiệp không thể vận hành hiệu quả nếu chỉ dừng lại ở các trang thông tin tĩnh. Một học viện thể thao muốn tồn tại và phát triển bền vững phải giải quyết được bài toán liên kết hữu cơ giữa **Học tập ↔ Luyện tập sân bãi ↔ Trang thiết bị dụng cụ ↔ Quản lý tiến độ đào tạo**.
+
+Vì vậy, nhóm đã nghiên cứu và phát triển mô hình **Hệ sinh thái Đào tạo Khép Kín (All-in-One Pickleball Academy Platform)**:
 
 ```
                   ┌────────────────────────────────────────┐
@@ -50,11 +59,50 @@ Dưới góc nhìn của **Chuyên viên Phân tích Nghiệp vụ (Business Ana
 └──────────────┘              └──────────────┘              └──────────────┘
 ```
 
-### Các giá trị nghiệp vụ đột phá được giải quyết:
-1. **Liên kết Đào tạo - Giữ sân tự động:** Khi học viên đăng ký khóa học, học viện đã tự động giữ chỗ cố định trên **Sân Indoor Huấn Luyện #3** cho toàn bộ các buổi học. Học viên đến ngày học chỉ cần lên sân tập, không phải tự trả thêm tiền thuê sân.
-2. **Lịch học linh hoạt (Không ép buộc đầu tuần):** Học viên có thể chọn **Ngày bắt đầu học (`startDate`) bất kỳ**. Hệ thống tự động tính toán đủ $N$ buổi học theo ca học trong tuần để xác định chính xác **Ngày kết thúc dự kiến (`expectedEndDate`)** và hiển thị chi tiết từng ngày học.
-3. **Phân bổ Huấn luyện viên chuyên môn hóa:** Mỗi khóa học được đảm nhiệm bởi đúng HLV chuyên trách (Cơ bản, Nâng cao, 1 Kèm 1, Trẻ em) kèm thuật toán phát hiện và ngăn chặn trùng lịch ca dạy.
-4. **Hệ thống Quản lý Đa vai trò (Multi-Role RBAC):** Phân chia rõ ràng 3 phân hệ tương tác: `Admin` (Quản trị viên), `Coach` (Huấn luyện viên), `Student/Guest` (Học viên & Khách hàng).
+---
+
+### 1.2. Lý Do Lựa Chọn Các Chức Năng Nâng Cao (Tại sao lại làm thêm các chức năng này?)
+
+Nhóm đã phân tích sâu hành vi người dùng (User Persona) của 3 đối tượng: **Học viên/Khách hàng**, **Huấn luyện viên** và **Ban Quản lý Học viện** để đưa ra quyết định phát triển 6 chức năng mở rộng thực tế:
+
+#### 1. Hệ thống Đặt sân tập theo giờ (Real-time Court Booking & Sơ đồ Ma trận 6 sân × 8 ca)
+* **Vấn đề thực tế:** Học viên sau mỗi buổi học với HLV luôn có nhu cầu thuê sân để tự luyện tập (Drilling) cùng bạn bè hoặc giao lưu đánh đôi (Social Play). Nếu học viện chỉ dạy học mà không cung cấp dịch vụ đặt sân, học viên buộc phải tìm kiếm và thuê sân của cụm sân khác $\rightarrow$ Vừa bất tiện cho học viên, vừa làm học viện thất thoát nguồn doanh thu khổng lồ từ việc khai thác sân bãi ngoài giờ học.
+* **Lý do lựa chọn & Giá trị mang lại:**
+  * Giúp học viện khai thác tối đa công suất 6 cụm sân cả ngày lẫn đêm (phân tách rõ Khung giờ thường và Khung giờ vàng Peak Hour).
+  * Tích hợp dịch vụ giá trị gia tăng: Cho thuê máy bắn bóng tự động Titan Pro và vợt Carbon cao cấp.
+  * Tự động áp dụng đặc quyền **Giảm giá 20% tiền thuê sân** cho học viên đang theo học, tạo động lực gắn bó lâu dài.
+
+#### 2. Cửa hàng Dụng cụ Pickleball Chính hãng (Pro Shop & Giỏ hàng Live)
+* **Vấn đề thực tế:** Trên 90% học viên mới bắt đầu chơi đều chưa sở hữu vợt riêng hoặc bối rối trước hàng trăm mẫu vợt trên thị trường (không biết chọn vợt độ dày lõi 14mm thiên về Lực hay 16mm thiên về Kiểm soát bóng, mặt sợi thủy tinh hay mặt Carbon T700). Họ thường có xu hướng tin tưởng và muốn mua các sản phẩm do chính HLV của học viện khuyên dùng.
+* **Lý do lựa chọn & Giá trị mang lại:**
+  * Cung cấp giải pháp trọn gói: Đăng ký học $\rightarrow$ Mua luôn vợt, bóng thi đấu Franklin X-40 và phụ kiện chính hãng USAPA ngay trên cùng một nền tảng.
+  * Tích hợp Giỏ hàng tính tiền thời gian thực, hỗ trợ nhiều hình thức thanh toán tiện lợi (Chuyển khoản VietQR, COD hoặc Nhận hàng trực tiếp tại quầy lễ tân sân).
+
+#### 3. Kênh Chuyên môn Huấn luyện viên (Coach Workspace, Điểm danh Chuyên cần & Đánh giá DUPR)
+* **Vấn đề thực tế:** Các trang web thông thường chỉ dừng ở việc "nhận đơn đăng ký rồi để đó". Trong thực tế huấn luyện thể thao, yếu tố quyết định danh tiếng của học viện là **Chất lượng đào tạo và Sự tiến bộ đo lường được của học viên**.
+* **Lý do lựa chọn & Giá trị mang lại:**
+  * Cung cấp cho HLV công cụ xem lịch dạy tuần/ngày trực quan (Grid và Agenda).
+  * Chức năng **Điểm danh chuyên cần theo buổi học thực tế:** Giúp giáo vụ theo dõi sát sao, chống thất thoát buổi học của học viên.
+  * **Hệ thống Đánh giá DUPR chuẩn quốc tế:** HLV chấm điểm trình độ DUPR (2.0 – 5.0), đánh giá chi tiết 4 kỹ năng cốt lõi (Dink bóng trong Kitchen, Drop shot, Giao bóng & Bộ chân di chuyển) kèm nhận xét riêng cho từng học viên.
+
+#### 4. Không Gian Quản Trị Độc Lập Toàn Màn Hình (Dedicated Admin Portal & 8 Phân Hệ CRUD)
+* **Vấn đề thực tế:** Ban Giám đốc và Lễ tân cần một không gian quản trị tập trung (Back-office) độc lập, không hiển thị chung chạ với giao diện công khai của khách hàng.
+* **Lý do lựa chọn & Giá trị mang lại:**
+  * **Sơ đồ Ma trận Sân 6 Sân × 8 Khung giờ:** Lễ tân nhìn vào là thấy ngay ca nào trống, ca nào có lớp học, ca nào cần bảo trì; nhấp trực tiếp vào ô để tạo đặt sân nhanh cho khách vãng lai gọi điện đến đặt chỗ.
+  * Toàn quyền cấu hình cụm sân, thời gian biểu, mở khóa học mới, phân công HLV và kiểm soát doanh thu tổng hợp.
+
+#### 5. Thuật Toán Xếp Lịch Linh Hoạt & Phòng Ngừa Trùng Lịch (Conflict-Free Scheduling Engine)
+* **Vấn đề thực tế:** Học viên có công việc và thời gian biểu khác nhau, không thể luôn bắt đầu học vào Thứ 2 đầu tuần. Nếu ép buộc bắt đầu từ đầu tuần sẽ làm giảm tỷ lệ đăng ký. Ngoài ra, việc xếp lịch thủ công rất dễ dẫn đến việc một HLV bị trùng 2 lớp cùng một giờ hoặc sân huấn luyện bị xếp chồng 2 nhóm học viên.
+* **Lý do lựa chọn & Giá trị mang lại:**
+  * Học viên được tự do chọn **Ngày bắt đầu học (`startDate`) bất kỳ**. Hệ thống tự động tính toán số buổi trong tuần để xác định chính xác **Ngày kết thúc dự kiến (`expectedEndDate`)**.
+  * **Tự động giữ chỗ Sân Huấn Luyện #3** cho tất cả các buổi học của khóa.
+  * Thuật toán kiểm tra giao thoa thời gian $\max(start_1, start_2) < \min(end_1, end_2)$ giúp cảnh báo và ngăn chặn trùng lịch dạy của HLV ngay từ lúc đăng ký.
+
+#### 6. Cẩm Nang Kỹ Thuật, Luật Chơi & Đánh Giá Thực Tế (Knowledge Hub & Social Proof)
+* **Vấn đề thực tế:** Pickleball là môn thể thao mới nổi tại Việt Nam, người mới tiếp cận thường chưa hiểu rõ luật Non-Volley Zone (Kitchen) hay quy tắc 2-Bounce Rule. Bên cạnh đó, người mới có tâm lý e ngại chưa biết học có tiến bộ không.
+* **Lý do lựa chọn & Giá trị mang lại:**
+  * Cung cấp cẩm nang luật chơi và video/bài viết hướng dẫn kỹ thuật giúp thu hút lượng truy cập tự nhiên (SEO).
+  * Mục Đánh giá thực tế (Testimonials) hiển thị tiến bộ điểm DUPR thực tế của cựu học viên, tạo dựng niềm tin vững chắc (Social Proof) thúc đẩy người mới an tâm ghi danh.
 
 ---
 
