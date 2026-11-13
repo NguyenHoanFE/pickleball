@@ -22,6 +22,7 @@ export default function CartDrawerModal({
 }) {
   const { currentUser } = useAuth();
   const [step, setStep] = useState('cart'); // 'cart' | 'checkout' | 'done'
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutData, setCheckoutData] = useState({
     customerName: currentUser?.name || '',
     customerPhone: currentUser?.phone || '',
@@ -41,13 +42,18 @@ export default function CartDrawerModal({
     0
   );
 
+  const totalItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
   const handleCheckoutSubmit = (e) => {
     e.preventDefault();
+    if (isSubmitting) return; // Item 13: Prevent double submit / spam orders
+
     if (!checkoutData.customerName.trim() || !checkoutData.customerPhone.trim() || !checkoutData.address.trim()) {
       setError('Vui lòng điền đầy đủ Họ tên, Số điện thoại và Địa chỉ nhận hàng.');
       return;
     }
     setError('');
+    setIsSubmitting(true);
 
     const newOrder = {
       id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -62,6 +68,7 @@ export default function CartDrawerModal({
 
     onAddShopOrder(newOrder);
     onClearCart();
+    setIsSubmitting(false);
     setStep('done');
     if (showToast) {
       showToast(`Đặt mua dụng cụ thành công! Mã đơn #${newOrder.id}`, 'success');
@@ -229,16 +236,40 @@ export default function CartDrawerModal({
                   </select>
                 </div>
 
+                {/* Item 12: Prominently display live order summary and total amount in checkout */}
+                <div className="p-3 bg-light rounded-3 border mb-4">
+                  <div className="d-flex justify-content-between align-items-center small mb-1 text-secondary">
+                    <span>Số lượng sản phẩm:</span>
+                    <strong className="text-dark">{totalItemCount} món</strong>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="fw-bold text-dark">Tổng tiền thanh toán:</span>
+                    <span className="fs-5 fw-extrabold text-danger">{formatVND(totalAmount)}</span>
+                  </div>
+                </div>
+
                 <div className="d-flex gap-2">
                   <button
                     type="button"
+                    disabled={isSubmitting}
                     onClick={() => setStep('cart')}
                     className="btn btn-outline-secondary w-50"
                   >
                     ← Quay lại
                   </button>
-                  <button type="submit" className="btn vp-btn-lime w-50 fw-bold">
-                    Xác Nhận Đặt Hàng
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="btn vp-btn-lime w-50 fw-bold d-flex align-items-center justify-content-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span>Đang xử lý...</span>
+                      </>
+                    ) : (
+                      'Xác Nhận Đặt Hàng'
+                    )}
                   </button>
                 </div>
               </form>

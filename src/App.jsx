@@ -91,6 +91,19 @@ function AppLayout({
   const { currentUser } = useAuth();
   const totalCartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
+  // Item 11 & Item 14: Strict Tab Access Control for Roles
+  useEffect(() => {
+    if (activeTab === 'admin-portal' && currentUser?.role !== 'admin') {
+      setActiveTab('home');
+    } else if (
+      activeTab === 'coach-portal' &&
+      currentUser?.role !== 'coach' &&
+      currentUser?.role !== 'admin'
+    ) {
+      setActiveTab('home');
+    }
+  }, [activeTab, currentUser, setActiveTab]);
+
   // If Admin is in 'admin-portal' mode, render full-screen dedicated Admin Workspace without public Header/Footer
   const isDedicatedAdminScreen =
     currentUser?.role === 'admin' && activeTab === 'admin-portal';
@@ -468,6 +481,20 @@ export default function App() {
   };
 
   const handleDeleteCourse = (courseId) => {
+    const courseToDelete = courses.find((c) => c.id === courseId);
+    const activeStudents = enrollments.filter(
+      (e) => e.courseId === courseId && e.status !== 'cancelled'
+    );
+    if (activeStudents.length > 0) {
+      alert(
+        `Không thể xóa khóa học "${courseToDelete?.title || courseId}" vì hiện đang có ${activeStudents.length} học viên đang ghi danh và tham gia học!\n\n` +
+        `Để bảo toàn dữ liệu học viên (Lỗi số 9), vui lòng chuyển lớp cho học viên hoặc đợi khóa học kết thúc trước khi xóa.`
+      );
+      return;
+    }
+    const confirmed = window.confirm(`Bạn có chắc chắn muốn xóa khóa học "${courseToDelete?.title || courseId}" không?`);
+    if (!confirmed) return;
+
     setCourses((prev) => prev.filter((c) => c.id !== courseId));
     showToast('Đã xóa khóa học khỏi danh sách.', 'info');
   };
@@ -574,6 +601,20 @@ export default function App() {
   }, [enrollments, courts, timeSlots]);
 
   const handleAddCourtBooking = (newBooking) => {
+    // Item 6: Prevent double-booking / conflict
+    const hasConflict = courtBookings.some(
+      (b) =>
+        b.courtId === newBooking.courtId &&
+        b.date === newBooking.date &&
+        b.slotId === newBooking.slotId &&
+        b.status !== 'cancelled' &&
+        b.id !== newBooking.id
+    );
+    if (hasConflict) {
+      showToast('Khung giờ này đã có người đặt trước đó. Vui lòng chọn ca khác!', 'danger');
+      return false;
+    }
+
     setCourtBookings((prev) => {
       const filtered = prev.filter((b) => b.id !== newBooking.id);
       return [newBooking, ...filtered];
@@ -584,6 +625,7 @@ export default function App() {
         : `Đã lưu lịch đặt sân #${newBooking.id}!`,
       'success'
     );
+    return true;
   };
 
   const handleUpdateCourtBooking = (bookingId, updatedFields) => {

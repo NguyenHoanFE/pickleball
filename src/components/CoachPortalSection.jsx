@@ -401,6 +401,26 @@ export default function CoachPortalSection({
     setEditingCourseId(null);
   };
 
+  // Item 11: Direct Guard preventing non-coach access
+  if (currentUser?.role !== 'coach' && currentUser?.role !== 'admin') {
+    return (
+      <div className="container py-5 text-center min-vh-100 d-flex flex-column align-items-center justify-content-center">
+        <div className="card p-5 shadow-sm rounded-4 border-0 text-center" style={{ maxWidth: '480px' }}>
+          <div className="bg-warning-subtle text-warning rounded-circle p-3 d-inline-flex mb-3 mx-auto">
+            <GraduationCap size={48} />
+          </div>
+          <h4 className="fw-bold text-dark mb-2">Không Gian Huấn Luyện Viên</h4>
+          <p className="text-secondary small mb-4">
+            Trang này chỉ dành riêng cho Huấn luyện viên (Coach) của Học viện. Vui lòng đăng nhập tài khoản HLV để vào lớp dạy.
+          </p>
+          <a href="#home" className="btn btn-dark rounded-pill fw-bold px-4">
+            Về Trang Chủ
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="py-4 bg-light min-vh-100">
       <div className="container">

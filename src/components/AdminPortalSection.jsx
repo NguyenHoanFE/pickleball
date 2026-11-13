@@ -393,6 +393,26 @@ export default function AdminPortalSection({
     }
   ];
 
+  // Item 11: Direct Guard preventing non-admin access
+  if (currentUser?.role !== 'admin') {
+    return (
+      <div className="container py-5 text-center min-vh-100 d-flex flex-column align-items-center justify-content-center">
+        <div className="card p-5 shadow-sm rounded-4 border-0 text-center" style={{ maxWidth: '480px' }}>
+          <div className="bg-danger-subtle text-danger rounded-circle p-3 d-inline-flex mb-3 mx-auto">
+            <Lock size={48} />
+          </div>
+          <h4 className="fw-bold text-danger mb-2">Quyền Truy Cập Bị Từ Chối</h4>
+          <p className="text-secondary small mb-4">
+            Bạn đang đăng nhập với vai trò <strong>{currentUser ? currentUser.role : 'Khách vãng lai'}</strong>. Chỉ Quản trị viên (Admin) mới có quyền truy cập khu vực này.
+          </p>
+          <button className="btn btn-dark rounded-pill fw-bold px-4" onClick={onSwitchToPublicView}>
+            Quay Về Trang Chủ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-vh-100 d-flex flex-column flex-lg-row bg-light">
       {/* =====================================================================

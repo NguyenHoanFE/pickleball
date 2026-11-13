@@ -470,6 +470,16 @@ html, body {
     max-width: calc(100vw - 1rem) !important;
   }
 
+  .modal-body {
+    overflow-x: hidden;
+    word-break: break-word;
+  }
+
+  .modal-dialog-scrollable .modal-body {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
   /* Forms & Inputs */
   .form-control, .form-select {
     font-size: 0.88rem !important;

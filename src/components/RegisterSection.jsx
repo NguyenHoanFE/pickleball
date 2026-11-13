@@ -218,6 +218,20 @@ export default function RegisterSection({
     });
   }, [assignedCoach, formData.preferredSchedule, formData.startDate, sessionCount, enrollments, courtBookings]);
 
+  // Item 8: Detect if student already has an active enrollment in this specific course
+  const isAlreadyEnrolled = useMemo(() => {
+    const cleanPhone = formData.phone.trim().replace(/\s+/g, '');
+    const cleanEmail = formData.email.trim().toLowerCase();
+    if (!cleanPhone && !cleanEmail) return false;
+    return enrollments.some(
+      (enr) =>
+        enr.courseId === selectedCourseObj.id &&
+        enr.status !== 'cancelled' &&
+        ((cleanPhone && enr.studentPhone?.replace(/\s+/g, '') === cleanPhone) ||
+          (cleanEmail && enr.studentEmail?.toLowerCase() === cleanEmail))
+    );
+  }, [enrollments, selectedCourseObj.id, formData.phone, formData.email]);
+
   const formatVND = (amount) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
@@ -319,6 +333,30 @@ export default function RegisterSection({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateAll()) return;
+
+    // Item 8: Prevent duplicate active enrollment for the same student on the same course
+    const cleanPhone = formData.phone.trim().replace(/\s+/g, '');
+    const cleanEmail = formData.email.trim().toLowerCase();
+    const existingEnrollment = enrollments.find(
+      (enr) =>
+        enr.courseId === selectedCourseObj.id &&
+        enr.status !== 'cancelled' &&
+        (enr.studentPhone?.replace(/\s+/g, '') === cleanPhone ||
+          enr.studentEmail?.toLowerCase() === cleanEmail)
+    );
+
+    if (existingEnrollment) {
+      alert(
+        `Thông báo trùng ghi danh (Lỗi số 8):\n` +
+        `Học viên ${formData.fullName.trim()} (SĐT: ${formData.phone.trim()}) hiện ĐÃ ĐĂNG KÝ khóa học "${selectedCourseObj.title}" (Mã hồ sơ: #${existingEnrollment.id}) và lớp học đang diễn ra.\n\n` +
+        `Bạn không cần đăng ký lại. Vui lòng vào trang "Hồ Sơ Cá Nhân" để xem lịch học hoặc liên hệ Giáo vụ nếu cần đổi ca!`
+      );
+      setErrors((prev) => ({
+        ...prev,
+        courseId: 'Học viên này đã ghi danh khóa học này rồi và hồ sơ đang hoạt động.'
+      }));
+      return;
+    }
 
     if (currentSlotConflict.hasConflict) {
       const confirmProceed = window.confirm(
@@ -917,11 +955,23 @@ export default function RegisterSection({
                     )}
                   </div>
 
+                  {isAlreadyEnrolled && (
+                    <div className="alert alert-warning d-flex align-items-center gap-2 small mb-3 rounded-3 border-0 shadow-xs">
+                      <AlertCircle size={20} className="text-warning flex-shrink-0" />
+                      <div>
+                        <strong>Cảnh báo ghi danh trùng:</strong> Bạn (hoặc SĐT/Email này) hiện đã có hồ sơ đang tham gia khóa học này. Hệ thống sẽ chặn tạo trùng để bảo toàn lịch học và tiến độ đào tạo của bạn.
+                      </div>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    className="btn vp-btn-lime btn-lg w-100 fw-extrabold py-3 shadow-sm"
+                    disabled={isAlreadyEnrolled}
+                    className={`btn btn-lg w-100 fw-extrabold py-3 shadow-sm ${
+                      isAlreadyEnrolled ? 'btn-secondary opacity-50' : 'vp-btn-lime'
+                    }`}
                   >
-                    Xác Nhận Đăng Ký Khóa Học
+                    {isAlreadyEnrolled ? 'Đã Ghi Danh Khóa Học Này' : 'Xác Nhận Đăng Ký Khóa Học'}
                   </button>
                 </form>
               )}

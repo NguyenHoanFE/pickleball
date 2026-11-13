@@ -46,6 +46,31 @@ export function AuthProvider({ children, showToast, onRoleRedirect }) {
     }
   }, [currentUser]);
 
+  // Sync currentUser with users list to immediately reflect Ban (Item 10) or Role change (Item 11)
+  useEffect(() => {
+    if (!currentUser) return;
+    const liveUser = users.find((u) => u.id === currentUser.id);
+    if (!liveUser) {
+      setCurrentUser(null);
+      localStorage.removeItem('vp_academy_current_user');
+      return;
+    }
+    if (liveUser.status === 'banned') {
+      setCurrentUser(null);
+      localStorage.removeItem('vp_academy_current_user');
+      if (showToast) {
+        showToast('Tài khoản của bạn đã bị Quản trị viên tạm khóa!', 'danger');
+      }
+      return;
+    }
+    if (liveUser.role !== currentUser.role) {
+      setCurrentUser(liveUser);
+      if (showToast) {
+        showToast(`Quyền tài khoản của bạn đã được cập nhật thành: ${liveUser.role}`, 'info');
+      }
+    }
+  }, [users, currentUser, showToast]);
+
   const openAuthModal = (tab = 'login') => {
     setAuthModalTab(tab);
     setIsAuthModalOpen(true);
@@ -112,6 +137,12 @@ export function AuthProvider({ children, showToast, onRoleRedirect }) {
 
   const logout = () => {
     setCurrentUser(null);
+    try {
+      localStorage.removeItem('vp_academy_current_user');
+    } catch {}
+    if (onRoleRedirect) {
+      onRoleRedirect('home');
+    }
     if (showToast) {
       showToast('Đã đăng xuất khỏi tài khoản.', 'info');
     }
@@ -128,15 +159,27 @@ export function AuthProvider({ children, showToast, onRoleRedirect }) {
   };
 
   const toggleUserStatus = (userId) => {
+    let nextStatus = 'active';
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === userId) {
-          const nextStatus = u.status === 'active' ? 'banned' : 'active';
+          nextStatus = u.status === 'active' ? 'banned' : 'active';
           return { ...u, status: nextStatus };
         }
         return u;
       })
     );
+    if (currentUser && currentUser.id === userId && nextStatus === 'banned') {
+      setCurrentUser(null);
+      try {
+        localStorage.removeItem('vp_academy_current_user');
+      } catch {}
+      if (onRoleRedirect) onRoleRedirect('home');
+      if (showToast) {
+        showToast('Tài khoản này đã bị khóa và đăng xuất ngay lập tức!', 'danger');
+      }
+      return;
+    }
     if (showToast) {
       showToast('Đã cập nhật trạng thái hoạt động của tài khoản!', 'info');
     }
