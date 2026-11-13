@@ -22,9 +22,8 @@
    - [4.1. Không gian Quản trị Độc lập (Admin Portal)](#41-không-gian-quản-trị-độc-lập-admin-portal)
    - [4.2. Kênh Chuyên môn Huấn luyện viên (Coach Workspace)](#42-kênh-chuyên-môn-huấn-luyện-viên-coach-workspace)
    - [4.3. Cổng Học viên & Khách hàng (Student & Customer Portal)](#43-cổng-học-viên--khách-hàng-student--customer-portal)
-5. [Cơ Chế Xếp Lịch & Phòng Vệ 10 Lỗi Nguy Cơ Cao (Defect Prevention)](#5-cơ-chế-xếp-lịch--phòng-vệ-10-lỗi-nguy-cơ-cao-defect-prevention)
-6. [Hướng dẫn Cài đặt, Chạy Local & Kiểm thử Tự động (Testing Guide)](#6-hướng-dẫn-cài-đặt-chạy-local--kiểm-thử-tự-động-testing-guide)
-7. [Hướng dẫn Triển khai Public lên Host Miễn phí (Vercel & Netlify)](#7-hướng-dẫn-triển-khai-public-lên-host-miễn-phí-vercel--netlify)
+5. [Hướng dẫn Cài đặt, Chạy Local & Kiểm thử Tự động (Testing Guide)](#5-hướng-dẫn-cài-đặt-chạy-local--kiểm-thử-tự-động-testing-guide)
+6. [Hướng dẫn Triển khai Public lên Host Miễn phí (Vercel & Netlify)](#6-hướng-dẫn-triển-khai-public-lên-host-miễn-phí-vercel--netlify)
 
 ---
 
@@ -167,55 +166,13 @@ Hệ thống tích hợp sẵn **11 tài khoản mẫu** đại diện cho đầ
 
 ---
 
-## 5. Cơ Chế Xếp Lịch & Phòng Vệ 10 Lỗi Nguy Cơ Cao (Defect Prevention)
+## 5. Hướng dẫn Cài đặt, Chạy Local & Kiểm thử Tự động (Testing Guide)
 
-Hệ thống đã trải qua quy trình rà soát và khắc phục triệt để **10 lỗi chức năng có nguy cơ cao**:
-
-```
-┌────┬─────────────────────────────┬──────────────────────────────────────────────────────────────┐
-│STT │ Lỗi Cần Kiểm Tra            │ Giải Pháp Kỹ Thuật Đã Triển Khai                             │
-├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
-│ 6  │ Đặt trùng sân               │ Kiểm tra 2 lớp: Vô hiệu hóa nút chọn trong UI & xác thực xung│
-│    │                             │ đột thời gian thực tại handleAddCourtBooking trước khi lưu.  │
-├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
-│ 7  │ Hủy đặt sân                 │ Khi hủy, cập nhật status='cancelled'. Bộ lọc ma trận tự động │
-│    │                             │ loại trừ và mở trống lại ca sân ngay lập tức.                │
-├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
-│ 8  │ Đăng ký khóa học nhiều lần  │ Kiểm tra (courseId + SĐT/Email). Nếu đã có hồ sơ đang học,   │
-│    │                             │ hiện cảnh báo vàng và vô hiệu hóa nút Submit.                │
-├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
-│ 9  │ Xóa khóa học mất hồ sơ cũ   │ Kiểm tra enrollments active. Nếu còn học viên đang học, hệ   │
-│    │                             │ thống CHẶN XÓA để bảo toàn dữ liệu học viên.                 │
-├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
-│ 10 │ Khóa tài khoản vẫn login    │ Chặn ngay từ hàm login. Bổ sung useEffect tự động kick out   │
-│    │                             │ và xóa session nếu tài khoản bị Admin ban khi đang online.   │
-├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
-│ 11 │ Đổi quyền tài khoản lọt tab │ Guard 2 lớp tại App.jsx và từng Component Portal: Chặn truy  │
-│    │                             │ cập trái phép và hiển thị màn hình "Từ chối truy cập".       │
-├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
-│ 12 │ Giỏ hàng sai tổng tiền      │ Tính toán live với reduce. Hiển thị khối tóm tắt đơn hàng rõ │
-│    │                             │ ràng ngay tại bước Checkout để khách luôn thấy tổng tiền.    │
-├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
-│ 13 │ Spam nút thanh toán         │ Tích hợp cờ isSubmitting: Khóa nút bấm ngay sau khi click,    │
-│    │                             │ loại bỏ 100% rủi ro tạo nhiều đơn hàng trùng.                │
-├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
-│ 14 │ Đăng xuất không sạch        │ Hàm logout() xóa dứt điểm LocalStorage và reset tab về       │
-│    │                             │ 'home', F5 lại trang không bị kẹt phiên đăng nhập cũ.        │
-├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
-│ 15 │ Vỡ giao diện trên mobile    │ 100% bảng bọc table-responsive. Giới hạn max-width cho modal,│
-│    │ (320px – 428px)             │ ngắt dòng tự động và chuyển sidebar thành thanh trượt ngang. │
-└────┴─────────────────────────────┴──────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 6. Hướng dẫn Cài đặt, Chạy Local & Kiểm thử Tự động (Testing Guide)
-
-### 6.1. Yêu cầu môi trường
+### 5.1. Yêu cầu môi trường
 * **Node.js:** Phiên bản `>= 18.x` (Khuyến nghị bản LTS)
 * **Trình quản lý gói:** `npm` (đi kèm Node.js) và `Git`
 
-### 6.2. Cài đặt và Chạy máy chủ Local
+### 5.2. Cài đặt và Chạy máy chủ Local
 ```bash
 # 1. Di chuyển vào thư mục mã nguồn
 cd Group_Project/2_Source_Code
@@ -228,13 +185,13 @@ npm start
 ```
 * Trình duyệt sẽ tự động mở trang web tại địa chỉ: **`http://localhost:3000`**
 
-### 6.3. Đóng gói Bản Build Kiểm thử
+### 5.3. Đóng gói Bản Build Kiểm thử
 ```bash
 npm run build
 ```
 * Mã nguồn sẽ được biên dịch tối ưu hóa vào thư mục `build/` với kết quả `Compiled successfully`.
 
-### 6.4. Chạy Bộ Kiểm Thử Tự Động (Automated Regression Test Suite)
+### 5.4. Chạy Bộ Kiểm Thử Tự Động (Automated Regression Test Suite)
 Dự án được trang bị sẵn script kiểm thử tự động toàn diện [test_roles_and_flows.js](file:///c:/Users/ducan/Downloads/Group_Project/Group_Project/2_Source_Code/test_roles_and_flows.js):
 ```bash
 node test_roles_and_flows.js
@@ -257,7 +214,7 @@ node test_roles_and_flows.js
 
 ---
 
-## 7. Hướng dẫn Triển khai Public lên Host Miễn phí (Vercel & Netlify)
+## 6. Hướng dẫn Triển khai Public lên Host Miễn phí (Vercel & Netlify)
 
 Để sản phẩm có đường link công khai truy cập từ bất kỳ đâu:
 
