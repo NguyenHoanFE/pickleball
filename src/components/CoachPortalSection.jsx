@@ -22,10 +22,16 @@ import {
   List,
   History,
   CalendarDays,
-  ChevronRight
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { calculateCourseDates, getLocalDateString } from '../data/courts';
+import {
+  TIME_SLOTS,
+  mapScheduleToSlotId,
+  calculateCourseDates,
+  getLocalDateString
+} from '../data/courts';
 
 const DAYS_OF_WEEK = [
   { key: 't2', label: 'Thứ 2', short: 'T2', fullDay: 'Thứ Hai' },
@@ -106,12 +112,28 @@ export default function CoachPortalSection({
   const [syllabusScope, setSyllabusScope] = useState('all'); // 'all' | 'my-courses'
   const [searchStudent, setSearchStudent] = useState('');
 
-  // State cho Tab Lịch Đứng Lớp Giảng Dạy
+  // State cho Tab Lịch Đứng Lớp Giảng Dạy (Thời khóa biểu dạng FAP University Schedule)
   const [scheduleScope, setScheduleScope] = useState('my-schedule'); // 'my-schedule' | 'all'
-  const [scheduleViewMode, setScheduleViewMode] = useState('timeline'); // 'timeline' (buổi học cụ thể) | 'grid' (tuần) | 'agenda' (danh sách)
+  const [scheduleViewMode, setScheduleViewMode] = useState('matrix'); // 'matrix' (thời khóa biểu FAP) | 'agenda' (danh sách) | 'timeline' (buổi học)
   const [timeHorizonFilter, setTimeHorizonFilter] = useState('all'); // 'all' | 'upcoming' (tương lai) | 'today' (hôm nay) | 'past' (quá khứ)
   const [selectedDayFilter, setSelectedDayFilter] = useState('all');
   const [scheduleSearch, setScheduleSearch] = useState('');
+
+  // Helper tính thứ 2 của tuần
+  const getMondayDateStr = (dateInput) => {
+    const d = new Date(dateInput);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const mon = new Date(d);
+    mon.setDate(d.getDate() + diff);
+    const yyyy = mon.getFullYear();
+    const mm = String(mon.getMonth() + 1).padStart(2, '0');
+    const dd = String(mon.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const currentMondayStr = useMemo(() => getMondayDateStr('2026-11-13'), []);
+  const [selectedWeekMonday, setSelectedWeekMonday] = useState(currentMondayStr);
 
   // State cho Form Chấm Điểm & Quản Lý Tiến Độ Học Tập
   const [gradingModalEnr, setGradingModalEnr] = useState(null);
@@ -264,6 +286,20 @@ export default function CoachPortalSection({
 
         const isAttended = idx < (enr.attendedSessions || 0);
 
+        const slotId = mapScheduleToSlotId(matchedSlot.time || enr.preferredSchedule);
+        let courseCode = (enr.courseId || '').replace('course-', '').toUpperCase();
+        if (enr.courseId === 'course-101') courseCode = 'BAS101';
+        if (enr.courseId === 'course-102') courseCode = 'ADV102';
+        if (enr.courseId === 'course-103') courseCode = 'VIP103';
+        if (enr.courseId === 'course-104') courseCode = 'KID104';
+        if (enr.courseId === 'course-105') courseCode = 'TOU105';
+        if (enr.courseId === 'course-106') courseCode = 'WEE106';
+        if (enr.courseId === 'course-107') courseCode = 'LAD107';
+        if (enr.courseId === 'course-108') courseCode = 'COR108';
+
+        const courseShortTitle = (enr.courseTitle || '').split('(')[0].trim();
+        const timeFormatted = matchedSlot.time.replace(/[:]/g, 'h').replace(/\s*-\s*/, '-');
+
         list.push({
           uniqueId: `timeline-${enr.id}-${dateStr}-${idx}`,
           sessionIndex: idx + 1,
@@ -273,13 +309,17 @@ export default function CoachPortalSection({
           dayLabel,
           dayKey,
           time: matchedSlot.time,
+          timeFormatted,
+          slotId,
+          courseId: enr.courseId,
+          courseCode,
+          courseTitle: enr.courseTitle,
+          courseShortTitle,
+          coachName: enr.coachName,
           enrollmentId: enr.id,
           studentName: enr.studentName,
           studentPhone: enr.studentPhone,
           studentEmail: enr.studentEmail,
-          courseId: enr.courseId,
-          courseTitle: enr.courseTitle,
-          coachName: enr.coachName,
           isOwner,
           timeStatus,
           isAttended,
@@ -299,6 +339,88 @@ export default function CoachPortalSection({
   }, [allTimelineSessions]);
 
   const timelineSource = scheduleScope === 'my-schedule' ? myTimelineSessions : allTimelineSessions;
+
+  // Tuần lễ cho Thời khóa biểu ma trận FAP (Tương lai & Quá khứ)
+  const weekOptions = useMemo(() => {
+    const today = new Date('2026-11-13');
+    const day = today.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const currentMon = new Date(today);
+    currentMon.setDate(today.getDate() + diffToMonday);
+
+    const list = [];
+    for (let offset = -4; offset <= 6; offset++) {
+      const mon = new Date(currentMon);
+      mon.setDate(currentMon.getDate() + offset * 7);
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+
+      const yyyy = mon.getFullYear();
+      const mm = String(mon.getMonth() + 1).padStart(2, '0');
+      const dd = String(mon.getDate()).padStart(2, '0');
+      const monStr = `${yyyy}-${mm}-${dd}`;
+      const formatD = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+      list.push({
+        mondayStr: monStr,
+        label: `${formatD(mon)} Đến ${formatD(sun)}`,
+        offset,
+        isCurrent: offset === 0,
+        isPast: offset < 0,
+        isFuture: offset > 0
+      });
+    }
+    return list;
+  }, []);
+
+  const currentWeekDays = useMemo(() => {
+    const monday = new Date(selectedWeekMonday);
+    const days = [];
+    const dayLabelsEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dayLabelsVn = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+
+    for (let i = 0; i < 7; i++) {
+      const cur = new Date(monday);
+      cur.setDate(monday.getDate() + i);
+      const yyyy = cur.getFullYear();
+      const mm = String(cur.getMonth() + 1).padStart(2, '0');
+      const dd = String(cur.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      const isToday = dateStr === todayDateStr;
+
+      days.push({
+        dateStr,
+        dayIndex: cur.getDay(),
+        enLabel: dayLabelsEn[i],
+        vnLabel: dayLabelsVn[i],
+        displayHeader: `${dayLabelsEn[i]} (${dd}/${mm})`,
+        displayDate: `${dd}/${mm}`,
+        isToday
+      });
+    }
+    return days;
+  }, [selectedWeekMonday, todayDateStr]);
+
+  const weekSessions = useMemo(() => {
+    const datesSet = new Set(currentWeekDays.map((d) => d.dateStr));
+    return timelineSource.filter((s) => datesSet.has(s.date));
+  }, [timelineSource, currentWeekDays]);
+
+  const handlePrevWeek = () => {
+    const d = new Date(selectedWeekMonday);
+    d.setDate(d.getDate() - 7);
+    setSelectedWeekMonday(getMondayDateStr(d));
+  };
+
+  const handleNextWeek = () => {
+    const d = new Date(selectedWeekMonday);
+    d.setDate(d.getDate() + 7);
+    setSelectedWeekMonday(getMondayDateStr(d));
+  };
+
+  const handleJumpToCurrentWeek = () => {
+    setSelectedWeekMonday(currentMondayStr);
+  };
 
   const countPast = useMemo(() => timelineSource.filter((s) => s.timeStatus === 'past').length, [timelineSource]);
   const countToday = useMemo(() => timelineSource.filter((s) => s.timeStatus === 'today').length, [timelineSource]);
@@ -770,10 +892,58 @@ export default function CoachPortalSection({
               </div>
             )}
 
-            {/* Controls & Filter Bar */}
+            {/* Controls & Week Navigation Bar (FAP University Timetable Style) */}
             <div className="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
-              <div className="row g-3 align-items-center justify-content-between mb-3 pb-3 border-bottom">
-                <div className="col-lg-6 d-flex flex-wrap align-items-center gap-2">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
+                {/* Week Navigator */}
+                <div className="d-flex flex-wrap align-items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handlePrevWeek}
+                    className="btn btn-sm btn-outline-dark fw-bold d-flex align-items-center gap-1 shadow-xs"
+                    title="Xem tuần trước trong quá khứ"
+                  >
+                    <ChevronLeft size={16} />
+                    <span>Tuần Trước</span>
+                  </button>
+
+                  <select
+                    className="form-select form-select-sm fw-bold border-primary shadow-xs"
+                    style={{ width: 'auto', minWidth: '240px' }}
+                    value={selectedWeekMonday}
+                    onChange={(e) => setSelectedWeekMonday(e.target.value)}
+                  >
+                    {weekOptions.map((w) => (
+                      <option key={w.mondayStr} value={w.mondayStr}>
+                        Tuần: {w.label} {w.isCurrent ? '⭐ (Hiện tại)' : w.isPast ? '(Quá khứ)' : '(Tương lai)'}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={handleNextWeek}
+                    className="btn btn-sm btn-outline-dark fw-bold d-flex align-items-center gap-1 shadow-xs"
+                    title="Xem tuần sau trong tương lai"
+                  >
+                    <span>Tuần Sau</span>
+                    <ChevronRight size={16} />
+                  </button>
+
+                  {selectedWeekMonday !== currentMondayStr && (
+                    <button
+                      type="button"
+                      onClick={handleJumpToCurrentWeek}
+                      className="btn btn-sm btn-warning text-dark fw-bold d-flex align-items-center gap-1 shadow-xs"
+                      title="Quay lại tuần này có ngày hôm nay"
+                    >
+                      <span>⚡ Trở về Tuần Này</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Scope & View Mode Toggle */}
+                <div className="d-flex flex-wrap align-items-center gap-2">
                   <div className="btn-group btn-group-sm">
                     <button
                       type="button"
@@ -782,7 +952,7 @@ export default function CoachPortalSection({
                         scheduleScope === 'my-schedule' ? 'btn-primary' : 'btn-outline-secondary'
                       }`}
                     >
-                      Lịch dạy của tôi ({myTimelineSessions.length} buổi)
+                      Lịch của tôi ({weekSessions.filter((s) => s.isOwner).length} ca)
                     </button>
                     <button
                       type="button"
@@ -791,128 +961,303 @@ export default function CoachPortalSection({
                         scheduleScope === 'all' ? 'btn-primary' : 'btn-outline-secondary'
                       }`}
                     >
-                      Toàn bộ học viện ({allTimelineSessions.length} buổi)
+                      Toàn trường ({weekSessions.length} ca)
                     </button>
                   </div>
 
-                  <select
-                    className="form-select form-select-sm"
-                    style={{ width: 'auto' }}
-                    value={selectedDayFilter}
-                    onChange={(e) => setSelectedDayFilter(e.target.value)}
-                  >
-                    <option value="all">📅 Tất cả thứ trong tuần</option>
-                    {DAYS_OF_WEEK.map((d) => (
-                      <option key={d.key} value={d.key}>
-                        {d.label} {d.key === todayDayKey ? '(Hôm nay)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="col-lg-6 d-flex flex-wrap align-items-center gap-2 justify-content-lg-end">
-                  <div className="input-group input-group-sm flex-grow-1" style={{ maxWidth: '240px' }}>
+                  <div className="input-group input-group-sm" style={{ width: '180px' }}>
                     <span className="input-group-text bg-light">
                       <Search size={14} />
                     </span>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Tìm học viên, ngày, khóa..."
+                      placeholder="Tìm lớp, học viên..."
                       value={scheduleSearch}
                       onChange={(e) => setScheduleSearch(e.target.value)}
                     />
                   </div>
 
-                  {/* 3 View Mode Toggle Buttons */}
                   <div className="btn-group btn-group-sm">
                     <button
                       type="button"
-                      onClick={() => setScheduleViewMode('timeline')}
-                      className={`btn d-flex align-items-center gap-1 ${
-                        scheduleViewMode === 'timeline' ? 'btn-dark' : 'btn-outline-dark'
+                      onClick={() => setScheduleViewMode('matrix')}
+                      className={`btn d-flex align-items-center gap-1 fw-bold ${
+                        scheduleViewMode === 'matrix' ? 'btn-dark' : 'btn-outline-dark'
                       }`}
-                      title="Dòng thời gian buổi học quá khứ & tương lai"
-                    >
-                      <CalendarDays size={15} />
-                      <span className="d-none d-sm-inline">Dòng Thời Gian</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setScheduleViewMode('grid')}
-                      className={`btn d-flex align-items-center gap-1 ${
-                        scheduleViewMode === 'grid' ? 'btn-dark' : 'btn-outline-dark'
-                      }`}
-                      title="Thời khóa biểu tuần"
+                      title="Thời khóa biểu dạng bảng ma trận slot theo thứ (FAP)"
                     >
                       <Grid size={15} />
-                      <span className="d-none d-sm-inline">Lịch Tuần</span>
+                      <span className="d-none d-md-inline">Thời Khóa Biểu</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setScheduleViewMode('agenda')}
-                      className={`btn d-flex align-items-center gap-1 ${
+                      className={`btn d-flex align-items-center gap-1 fw-bold ${
                         scheduleViewMode === 'agenda' ? 'btn-dark' : 'btn-outline-dark'
                       }`}
-                      title="Danh sách ca dạy"
+                      title="Bảng danh sách chi tiết"
                     >
                       <List size={15} />
-                      <span className="d-none d-sm-inline">Bảng Danh Sách</span>
+                      <span className="d-none d-md-inline">Danh Sách</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScheduleViewMode('timeline')}
+                      className={`btn d-flex align-items-center gap-1 fw-bold ${
+                        scheduleViewMode === 'timeline' ? 'btn-dark' : 'btn-outline-dark'
+                      }`}
+                      title="Dòng thời gian buổi học"
+                    >
+                      <CalendarDays size={15} />
+                      <span className="d-none d-md-inline">Dòng Thời Gian</span>
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Time Horizon Filter: Quá Khứ vs Hôm Nay vs Tương Lai */}
-              <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                <div className="d-flex flex-wrap align-items-center gap-2">
-                  <span className="text-secondary small fw-bold d-flex align-items-center gap-1">
-                    <History size={15} className="text-primary" />
-                    <span>Lọc Thời Gian:</span>
+              {/* Status Note & Legend */}
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 small">
+                <div className="d-flex flex-wrap align-items-center gap-3">
+                  <span className="fw-bold text-dark d-flex align-items-center gap-1">
+                    <span>📌 Chú thích:</span>
                   </span>
-                  <div className="btn-group btn-group-sm">
-                    <button
-                      type="button"
-                      onClick={() => setTimeHorizonFilter('all')}
-                      className={`btn fw-bold ${timeHorizonFilter === 'all' ? 'btn-dark' : 'btn-outline-dark'}`}
-                    >
-                      🌟 Tất cả ({countTotal})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTimeHorizonFilter('upcoming')}
-                      className={`btn fw-bold ${
-                        timeHorizonFilter === 'upcoming' ? 'btn-primary' : 'btn-outline-primary'
-                      }`}
-                    >
-                      🔮 Lịch Tương Lai / Sắp tới ({countUpcoming})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTimeHorizonFilter('today')}
-                      className={`btn fw-bold ${
-                        timeHorizonFilter === 'today' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'
-                      }`}
-                    >
-                      ⚡ Hôm nay ({countToday})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTimeHorizonFilter('past')}
-                      className={`btn fw-bold ${
-                        timeHorizonFilter === 'past' ? 'btn-secondary text-white' : 'btn-outline-secondary'
-                      }`}
-                    >
-                      📜 Quá Khứ / Lịch Sử ({countPast})
-                    </button>
-                  </div>
+                  <span className="d-inline-flex align-items-center gap-1">
+                    <span className="badge bg-success bg-opacity-25 text-success border border-success-subtle fw-bold">
+                      Fri (13/11)
+                    </span>
+                    <span className="text-muted">Cột Hôm nay</span>
+                  </span>
+                  <span className="d-inline-flex align-items-center gap-1 text-success fw-semibold">
+                    <CheckCircle2 size={14} className="text-success" />
+                    <span>Present (Đã học)</span>
+                  </span>
+                  <span className="d-inline-flex align-items-center gap-1 text-danger fw-semibold">
+                    <X size={14} className="text-danger" />
+                    <span>Absent (Vắng)</span>
+                  </span>
+                  <span className="d-inline-flex align-items-center gap-1 text-primary fw-semibold">
+                    <Clock size={14} className="text-primary" />
+                    <span>Sắp tới (Tương lai)</span>
+                  </span>
+                  <span className="d-inline-flex align-items-center gap-1 text-secondary">
+                    <span>📍 Sân Huấn Luyện #3 (Cố định)</span>
+                  </span>
                 </div>
 
-                <div className="small text-secondary">
-                  Đang hiển thị <strong>{displayedTimelineSessions.length}</strong> buổi học ({timeHorizonFilter === 'all' ? 'Toàn bộ thời gian' : timeHorizonFilter === 'upcoming' ? 'Lịch tương lai sắp tới' : timeHorizonFilter === 'past' ? 'Lịch sử quá khứ' : 'Hôm nay'})
+                <div className="text-secondary">
+                  Tuần từ <strong>{currentWeekDays[0]?.displayDate}</strong> đến <strong>{currentWeekDays[6]?.displayDate}</strong>
                 </div>
               </div>
             </div>
+
+            {/* VIEW 1: WEEKLY TIMETABLE MATRIX (THỜI KHÓA BIỂU DẠNG BẢNG MA TRẬN FAP NHƯ TRONG ẢNH) */}
+            {scheduleViewMode === 'matrix' && (
+              <div className="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
+                <div className="table-responsive">
+                  <table
+                    className="table table-bordered mb-0 align-middle"
+                    style={{ minWidth: '980px', borderColor: '#e2e8f0' }}
+                  >
+                    <thead>
+                      <tr className="text-center">
+                        <th
+                          style={{
+                            width: '85px',
+                            verticalAlign: 'middle',
+                            backgroundColor: '#f8fafc',
+                            color: '#1e293b'
+                          }}
+                          className="fw-bold py-3 border"
+                        >
+                          Slot
+                        </th>
+                        {currentWeekDays.map((day) => (
+                          <th
+                            key={day.dateStr}
+                            style={{
+                              width: '13%',
+                              verticalAlign: 'middle',
+                              backgroundColor: day.isToday ? '#d1fae5' : '#f8fafc',
+                              color: day.isToday ? '#065f46' : '#1e293b'
+                            }}
+                            className={`py-3 fw-bold border ${day.isToday ? 'border-success' : ''}`}
+                          >
+                            <div className="fs-6 fw-extrabold">{day.displayHeader}</div>
+                            <small className="opacity-75">{day.vnLabel} {day.isToday ? '⚡' : ''}</small>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {TIME_SLOTS.map((slot, sIdx) => {
+                        return (
+                          <tr key={slot.id} className="text-center align-top">
+                            {/* Column 1: Slot Number & Time */}
+                            <td
+                              style={{
+                                verticalAlign: 'middle',
+                                backgroundColor: '#f8fafc',
+                                width: '85px'
+                              }}
+                              className="fw-bold border"
+                            >
+                              <div className="fs-5 text-dark fw-extrabold">{sIdx + 1}</div>
+                              <div className="text-muted fw-normal" style={{ fontSize: '0.68rem', lineHeight: '1.2' }}>
+                                {slot.time.replace(/\s+/g, '')}
+                              </div>
+                            </td>
+
+                            {/* 7 Columns: Mon to Sun */}
+                            {currentWeekDays.map((day) => {
+                              let cellSessions = weekSessions.filter(
+                                (s) => s.date === day.dateStr && s.slotId === slot.id
+                              );
+
+                              if (scheduleSearch) {
+                                const q = scheduleSearch.toLowerCase().trim();
+                                cellSessions = cellSessions.filter(
+                                  (s) =>
+                                    s.studentName.toLowerCase().includes(q) ||
+                                    s.courseTitle.toLowerCase().includes(q) ||
+                                    s.courseCode.toLowerCase().includes(q)
+                                );
+                              }
+
+                              return (
+                                <td
+                                  key={`${slot.id}-${day.dateStr}`}
+                                  style={{
+                                    backgroundColor: day.isToday ? '#f0fdf4' : '#ffffff',
+                                    verticalAlign: 'top',
+                                    padding: '6px',
+                                    minHeight: '130px'
+                                  }}
+                                  className={`border ${day.isToday ? 'border-success-subtle' : ''}`}
+                                >
+                                  {cellSessions.length === 0 ? (
+                                    <div
+                                      className="text-muted text-center py-4 fw-light opacity-50"
+                                      style={{ fontSize: '1.2rem', userSelect: 'none' }}
+                                    >
+                                      -
+                                    </div>
+                                  ) : (
+                                    <div className="d-flex flex-column gap-2">
+                                      {cellSessions.map((s) => (
+                                        <div
+                                          key={s.uniqueId}
+                                          className={`p-2 rounded-3 border text-start shadow-xs h-100 d-flex flex-column justify-content-between ${
+                                            s.isOwner
+                                              ? 'bg-white border-primary-subtle'
+                                              : 'bg-light bg-opacity-75 border-secondary-subtle'
+                                          }`}
+                                          style={{ minHeight: '125px' }}
+                                        >
+                                          <div>
+                                            {/* Course Code & Title: 📖 VIP103 - 1 Kèm 1 */}
+                                            <div
+                                              className="fw-bold text-primary mb-1 d-flex align-items-center justify-content-between"
+                                              style={{ fontSize: '0.78rem' }}
+                                            >
+                                              <span className="text-truncate" title={s.courseTitle}>
+                                                📖 {s.courseCode} - {s.courseShortTitle}
+                                              </span>
+                                            </div>
+
+                                            {/* Attendance Status: Present vs Absent vs Sắp tới */}
+                                            <div className="mb-1">
+                                              {s.isAttended ? (
+                                                <span
+                                                  className="text-success fw-bold d-inline-flex align-items-center gap-1"
+                                                  style={{ fontSize: '0.72rem' }}
+                                                >
+                                                  <CheckCircle2 size={13} className="text-success" />
+                                                  <span>Present</span>
+                                                </span>
+                                              ) : s.isPast ? (
+                                                <span
+                                                  className="text-danger fw-bold d-inline-flex align-items-center gap-1"
+                                                  style={{ fontSize: '0.72rem' }}
+                                                >
+                                                  <X size={13} className="text-danger" />
+                                                  <span>Absent</span>
+                                                </span>
+                                              ) : (
+                                                <span
+                                                  className="text-primary fw-bold d-inline-flex align-items-center gap-1"
+                                                  style={{ fontSize: '0.72rem' }}
+                                                >
+                                                  <Clock size={13} className="text-primary" />
+                                                  <span>Sắp tới</span>
+                                                </span>
+                                              )}
+                                            </div>
+
+                                            {/* Time: 09h00-10h30 - Offline */}
+                                            <div
+                                              className="fw-bold mb-1"
+                                              style={{ fontSize: '0.72rem', color: '#b45309' }}
+                                            >
+                                              ⏰ {s.timeFormatted} - Offline
+                                            </div>
+
+                                            {/* Court: DE-332 style */}
+                                            <div className="text-secondary mb-1" style={{ fontSize: '0.72rem' }}>
+                                              📍 Sân Huấn Luyện #3
+                                            </div>
+
+                                            {/* Student Name */}
+                                            <div
+                                              className="small fw-semibold text-dark text-truncate"
+                                              style={{ fontSize: '0.72rem' }}
+                                            >
+                                              👤 {s.studentName}
+                                            </div>
+                                            {!s.isOwner && (
+                                              <div
+                                                className="text-muted text-truncate"
+                                                style={{ fontSize: '0.68rem' }}
+                                              >
+                                                HLV: {s.coachName}
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {/* Attendance Button if Coach is Owner */}
+                                          {s.isOwner ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => openGradingModal(s.enrollment)}
+                                              className="btn btn-sm btn-outline-primary py-0 px-2 fw-bold mt-2 w-100 d-flex align-items-center justify-content-center gap-1 shadow-xs"
+                                              style={{ fontSize: '0.68rem' }}
+                                            >
+                                              <Edit3 size={11} />
+                                              <span>Điểm danh</span>
+                                            </button>
+                                          ) : (
+                                            <div
+                                              className="text-muted text-center py-1 mt-1 border-top"
+                                              style={{ fontSize: '0.65rem' }}
+                                            >
+                                              🔒 HLV khác
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* VIEW 1: TIMELINE VIEW (QUÁ KHỨ & TƯƠNG LAI - BUỔI HỌC CỤ THỂ) */}
             {scheduleViewMode === 'timeline' && (
