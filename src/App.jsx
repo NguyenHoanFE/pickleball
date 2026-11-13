@@ -320,8 +320,50 @@ export default function App() {
 
   const [enrollments, setEnrollments] = useState(() => {
     try {
-      const saved = localStorage.getItem('vp_academy_enrollments_v2');
-      return saved ? JSON.parse(saved) : INITIAL_ENROLLMENTS;
+      const v3 = localStorage.getItem('vp_academy_enrollments_v3');
+      let list = v3 ? JSON.parse(v3) : null;
+      if (!list) {
+        const v2 = localStorage.getItem('vp_academy_enrollments_v2');
+        if (v2) {
+          list = JSON.parse(v2);
+        }
+      }
+
+      if (!Array.isArray(list) || list.length === 0) {
+        return INITIAL_ENROLLMENTS;
+      }
+
+      // Check and sync predefined records (ENR-2001 -> ENR-2005) so Nguyễn Minh Đức is mapped to HLV Sarah Jenkins (1 Kèm 1)
+      const initialMap = new Map(INITIAL_ENROLLMENTS.map((e) => [e.id, e]));
+      const migrated = list.map((e) => {
+        if (initialMap.has(e.id)) {
+          const fresh = initialMap.get(e.id);
+          return {
+            ...fresh,
+            attendance: e.attendance || fresh.attendance,
+            attendedSessions: e.attendedSessions !== undefined ? e.attendedSessions : fresh.attendedSessions,
+            absentSessions: e.absentSessions !== undefined ? e.absentSessions : fresh.absentSessions,
+            remainingSessions: e.remainingSessions !== undefined ? e.remainingSessions : fresh.remainingSessions,
+            duprEvaluation: e.duprEvaluation || fresh.duprEvaluation,
+            coachFeedback: e.coachFeedback || fresh.coachFeedback,
+            status: e.status || fresh.status
+          };
+        }
+        // Auto-assign coach for 1-1 course if not already assigned
+        if (
+          (e.courseId === 'course-103' || e.courseTitle?.includes('1 Kèm 1')) &&
+          (!e.coachName || e.coachName === 'Chưa phân công')
+        ) {
+          return { ...e, coachName: 'HLV Sarah Jenkins' };
+        }
+        return e;
+      });
+
+      try {
+        localStorage.setItem('vp_academy_enrollments_v3', JSON.stringify(migrated));
+      } catch {}
+
+      return migrated;
     } catch {
       return INITIAL_ENROLLMENTS;
     }
@@ -422,7 +464,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('vp_academy_enrollments_v2', JSON.stringify(enrollments));
+      localStorage.setItem('vp_academy_enrollments_v3', JSON.stringify(enrollments));
     } catch {}
   }, [enrollments]);
 

@@ -140,11 +140,22 @@ export default function CoachPortalSection({
   };
 
   // Helper check: Kiểm tra quyền sở hữu giữa HLV đang đăng nhập và HLV phụ trách lớp/khóa học
-  const isCoachOwner = (coachName) => {
+  const isCoachOwner = (coachName, courseId) => {
     if (!currentUser) return false;
     if (currentUser.role === 'admin') return true; // Admin có toàn quyền
-    if (!coachName || typeof coachName !== 'string') return false;
-    const targetClean = coachName.toLowerCase().replace(/^hlv\s+/i, '').trim();
+
+    let effectiveCoach = coachName;
+    if (!effectiveCoach || typeof effectiveCoach !== 'string' || effectiveCoach === 'Chưa phân công' || effectiveCoach.trim() === '') {
+      if (courseId) {
+        const found = courses.find((c) => c.id === courseId);
+        if (found?.coach) {
+          effectiveCoach = found.coach;
+        }
+      }
+    }
+
+    if (!effectiveCoach || typeof effectiveCoach !== 'string') return false;
+    const targetClean = effectiveCoach.toLowerCase().replace(/^hlv\s+/i, '').trim();
     if (!targetClean || targetClean === 'chưa phân công' || targetClean === 'chưa có' || targetClean === 'null' || targetClean === 'undefined') {
       return false;
     }
@@ -174,13 +185,13 @@ export default function CoachPortalSection({
   };
 
   const myCourses = courses.filter((c) => isCoachOwner(c.coach));
-  const myEnrollments = enrollments.filter((e) => isCoachOwner(e.coachName));
+  const myEnrollments = enrollments.filter((e) => isCoachOwner(e.coachName, e.courseId));
 
   // Trích xuất toàn bộ ca dạy từ các hồ sơ đăng ký của học viên
   const allTeachingSessions = useMemo(() => {
     const sessions = [];
     enrollments.forEach((enr) => {
-      const isOwner = isCoachOwner(enr.coachName);
+      const isOwner = isCoachOwner(enr.coachName, enr.courseId);
       const parsedSlots = parseScheduleSlots(enr.preferredSchedule);
       const stats = getSessionStats(enr);
       parsedSlots.forEach((slot, idx) => {
@@ -238,7 +249,7 @@ export default function CoachPortalSection({
   const filteredEnrollments = enrollments
     .filter((e) => {
       if (studentScope === 'my-students') {
-        return isCoachOwner(e.coachName);
+        return isCoachOwner(e.coachName, e.courseId);
       }
       return true;
     })
@@ -258,7 +269,7 @@ export default function CoachPortalSection({
 
   const openGradingModal = (enr) => {
     if (!enr) return;
-    if (!isCoachOwner(enr.coachName)) {
+    if (!isCoachOwner(enr.coachName, enr.courseId)) {
       alert('Bạn không được phân công phụ trách học viên này! Chỉ Huấn luyện viên được phân công chính thức mới có quyền điểm danh.');
       return;
     }
@@ -490,7 +501,7 @@ export default function CoachPortalSection({
             <div className="d-flex align-items-center gap-2 small">
               <AlertCircle size={20} className="text-info flex-shrink-0" />
               <div>
-                <strong>Gợi ý tra cứu học viên:</strong> HLV <strong>{currentUser?.name}</strong> hiện chưa có học viên nào trong lớp mình phụ trách.
+                <strong>Gợi ý tra cứu học viên:</strong> <strong>{currentUser?.name?.startsWith('HLV ') ? currentUser?.name : `HLV ${currentUser?.name}`}</strong> hiện chưa có học viên nào trong lớp mình phụ trách.
                 {currentUser?.email === 'coach@pickleball.edu.vn' && (
                   <span> Khóa học <strong>Huấn Luyện 1 Kèm 1</strong> do <strong>HLV Sarah Jenkins</strong> phụ trách.</span>
                 )}
@@ -1092,7 +1103,7 @@ export default function CoachPortalSection({
                 <tbody>
                   {filteredEnrollments.map((enr) => {
                     const stats = getSessionStats(enr);
-                    const isOwner = isCoachOwner(enr.coachName);
+                    const isOwner = isCoachOwner(enr.coachName, enr.courseId);
                     return (
                       <tr key={enr.id}>
                         <td className="fw-bold">{enr.id}</td>

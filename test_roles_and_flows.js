@@ -150,6 +150,13 @@ coachCredentials.forEach((coach) => {
   assert(isCoachOwner('Chưa phân công', coachNam) === false, 'HLV Nam BỊ CHẶN điểm danh hồ sơ chưa phân công HLV');
   assert(isCoachOwner('', coachNam) === false, 'HLV Nam BỊ CHẶN điểm danh chuỗi rỗng');
 
+  // Kiểm tra liên kết học viên Nguyễn Minh Đức (Khóa 1 Kèm 1) cho HLV Sarah Jenkins
+  const sarahEnrollments = enrollments.filter((e) => isCoachOwner(e.coachName, coachSarah));
+  const ducEnrollment = sarahEnrollments.find((e) => e.studentName === 'Nguyễn Minh Đức');
+  assert(ducEnrollment !== undefined, 'Học viên Nguyễn Minh Đức hiển thị chính xác trong lớp HLV Sarah Jenkins');
+  assert(ducEnrollment.courseId === 'course-103', 'Học viên Nguyễn Minh Đức đăng ký đúng khóa Huấn Luyện 1 Kèm 1');
+  assert(isCoachOwner(ducEnrollment.coachName, coachSarah) === true, 'HLV Sarah Jenkins có đầy đủ quyền điểm danh & chấm DUPR cho Nguyễn Minh Đức');
+
   // Test Conflict-Free Scheduling (Giao nhau một phần: Lớp A 08:00-10:00 vs Lớp B 09:00-11:00)
   function parseTimeRangeMinutes(timeStr) {
     if (!timeStr) return { start: 0, end: 0 };
