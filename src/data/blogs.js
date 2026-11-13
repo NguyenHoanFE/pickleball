@@ -273,7 +273,7 @@ export const INITIAL_ENROLLMENTS = [
     studentEmail: 'khang.vo@gmail.com',
     courseId: 'course-103',
     courseTitle: 'Huấn Luyện Cá Nhân 1 Kèm 1 (VIP Private Coaching 1-on-1)',
-    coachName: 'Chưa phân công',
+    coachName: 'HLV Sarah Jenkins',
     tuition: 7500000,
     preferredSchedule: 'Thứ 7 & Chủ Nhật (09:00 - 10:30)',
     startDate: '2026-11-14',

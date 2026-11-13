@@ -96,7 +96,7 @@ export default function CoachPortalSection({
   onUpdateEnrollment,
   courtBookings
 }) {
-  const { currentUser } = useAuth();
+  const { currentUser, login } = useAuth();
   const [activeTab, setActiveTab] = useState('teaching-schedule');
   const [studentScope, setStudentScope] = useState('my-students'); // 'my-students' | 'all'
   const [syllabusScope, setSyllabusScope] = useState('all'); // 'all' | 'my-courses'
@@ -452,6 +452,73 @@ export default function CoachPortalSection({
             </div>
           </div>
         </div>
+
+        {/* Quick Switcher across 4 Coaches for easy testing */}
+        <div className="bg-white p-3 rounded-4 shadow-sm mb-4 border d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div className="d-flex align-items-center gap-2 small">
+            <span className="badge bg-primary text-white">Chuyển đổi HLV test</span>
+            <span className="text-secondary">Đang đăng nhập:</span>
+            <strong className="text-dark">{currentUser?.name}</strong>
+            <span className="text-muted">({currentUser?.email})</span>
+          </div>
+          <div className="d-flex flex-wrap gap-1">
+            {[
+              { email: 'coach@pickleball.edu.vn', name: 'HLV Nam (Nâng cao)' },
+              { email: 'sarah.coach@pickleball.edu.vn', name: 'HLV Sarah (1 Kèm 1)' },
+              { email: 'quan.coach@pickleball.edu.vn', name: 'HLV Quân (Cơ bản)' },
+              { email: 'thao.coach@pickleball.edu.vn', name: 'HLV Thảo (Trẻ em)' }
+            ].map((c) => (
+              <button
+                key={c.email}
+                type="button"
+                onClick={() => login(c.email, 'Coach@123')}
+                className={`btn btn-sm py-1 px-2 fw-semibold ${
+                  currentUser?.email === c.email
+                    ? 'btn-dark shadow-sm'
+                    : 'btn-outline-secondary'
+                }`}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Empty state hint banner if this coach currently has 0 assigned enrollments */}
+        {myEnrollments.length === 0 && (
+          <div className="alert alert-info rounded-4 p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-xs">
+            <div className="d-flex align-items-center gap-2 small">
+              <AlertCircle size={20} className="text-info flex-shrink-0" />
+              <div>
+                <strong>Gợi ý tra cứu học viên:</strong> HLV <strong>{currentUser?.name}</strong> hiện chưa có học viên nào trong lớp mình phụ trách.
+                {currentUser?.email === 'coach@pickleball.edu.vn' && (
+                  <span> Khóa học <strong>Huấn Luyện 1 Kèm 1</strong> do <strong>HLV Sarah Jenkins</strong> phụ trách.</span>
+                )}
+              </div>
+            </div>
+            <div className="d-flex gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('students');
+                  setStudentScope('all');
+                }}
+                className="btn btn-sm btn-primary fw-bold"
+              >
+                Xem tất cả {enrollments.length} học viên toàn trường
+              </button>
+              {currentUser?.email !== 'sarah.coach@pickleball.edu.vn' && (
+                <button
+                  type="button"
+                  onClick={() => login('sarah.coach@pickleball.edu.vn', 'Coach@123')}
+                  className="btn btn-sm btn-outline-dark fw-bold"
+                >
+                  Chuyển sang HLV Sarah Jenkins
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Coach KPI Cards */}
         <div className="row g-3 mb-4">
@@ -1140,6 +1207,31 @@ export default function CoachPortalSection({
                       </tr>
                     );
                   })}
+
+                  {filteredEnrollments.length === 0 && (
+                    <tr>
+                      <td colSpan="8" className="text-center py-5">
+                        <div className="text-secondary mb-2">
+                          <Users size={36} className="opacity-50" />
+                        </div>
+                        <h6 className="fw-bold text-dark">Chưa có học viên nào trong danh mục này</h6>
+                        <p className="text-muted small mb-3">
+                          {studentScope === 'my-students'
+                            ? `HLV ${currentUser?.name} hiện chưa có học viên nào thuộc lớp do mình trực tiếp phụ trách.`
+                            : 'Không tìm thấy hồ sơ học viên phù hợp với từ khóa.'}
+                        </p>
+                        {studentScope === 'my-students' && (
+                          <button
+                            type="button"
+                            onClick={() => setStudentScope('all')}
+                            className="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3"
+                          >
+                            Xem tất cả {enrollments.length} học viên toàn học viện →
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
