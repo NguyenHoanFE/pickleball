@@ -157,6 +157,30 @@ coachCredentials.forEach((coach) => {
   assert(ducEnrollment.courseId === 'course-103', 'Học viên Nguyễn Minh Đức đăng ký đúng khóa Huấn Luyện 1 Kèm 1');
   assert(isCoachOwner(ducEnrollment.coachName, coachSarah) === true, 'HLV Sarah Jenkins có đầy đủ quyền điểm danh & chấm DUPR cho Nguyễn Minh Đức');
 
+  // Kiểm thử HLV xem được lịch học ở TƯƠNG LAI và QUÁ KHỨ
+  const { calculateCourseDates } = require('./src/data/courts');
+  const checkTodayStr = '2026-11-13';
+
+  // 1. Lịch Tương Lai: Lớp 1 Kèm 1 của Nguyễn Minh Đức (HLV Sarah Jenkins) bắt đầu từ 14/11/2026
+  const sarahDates = calculateCourseDates(ducEnrollment.preferredSchedule, ducEnrollment.startDate, ducEnrollment.totalSessions);
+  assert(sarahDates.sessionDates.length === 10, 'Lớp 1 Kèm 1 của Nguyễn Minh Đức tính đúng đủ 10 buổi học');
+  const sarahFutureSessions = sarahDates.sessionDates.filter((d) => d >= checkTodayStr);
+  assert(sarahFutureSessions.length === 10, 'HLV Sarah Jenkins xem được 10 buổi học trong TƯƠNG LAI của học viên Nguyễn Minh Đức (Từ 14/11/2026)');
+
+  // 2. Lịch Quá Khứ: Lớp Thực Chiến Giải Đấu của Võ Hoàng Khang (HLV Nguyễn Hoàng Nam) từ 21/10 đến 08/11/2026
+  const khangEnrollment = enrollments.find((e) => e.studentName === 'Võ Hoàng Khang');
+  assert(khangEnrollment !== undefined, 'Tìm thấy hồ sơ lớp của Võ Hoàng Khang');
+  const khangDates = calculateCourseDates(khangEnrollment.preferredSchedule, khangEnrollment.startDate, khangEnrollment.totalSessions);
+  const khangPastSessions = khangDates.sessionDates.filter((d) => d < checkTodayStr);
+  assert(khangPastSessions.length === 6, 'HLV Nguyễn Hoàng Nam xem được 6 buổi học trong QUÁ KHỨ / LỊCH SỬ của học viên Võ Hoàng Khang (Kết thúc 08/11/2026)');
+
+  // 3. Phân định đa chiều Quá Khứ & Tương Lai của lớp đang diễn ra (Phạm Gia Huy)
+  const huyEnrollment = enrollments.find((e) => e.studentName === 'Phạm Gia Huy');
+  const huyDates = calculateCourseDates(huyEnrollment.preferredSchedule, huyEnrollment.startDate, huyEnrollment.totalSessions);
+  const huyPast = huyDates.sessionDates.filter((d) => d < checkTodayStr);
+  const huyFuture = huyDates.sessionDates.filter((d) => d >= checkTodayStr);
+  assert(huyPast.length > 0 && huyFuture.length > 0, 'HLV xem được phân định rõ ràng giữa các buổi học trong Quá Khứ và buổi học Tương Lai');
+
   // Test Conflict-Free Scheduling (Giao nhau một phần: Lớp A 08:00-10:00 vs Lớp B 09:00-11:00)
   function parseTimeRangeMinutes(timeStr) {
     if (!timeStr) return { start: 0, end: 0 };

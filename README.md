@@ -189,9 +189,14 @@ Hệ thống tích hợp sẵn **11 tài khoản mẫu** đại diện cho đầ
   8. **Hộp Thư Liên Hệ (`contacts`):** Tiếp nhận câu hỏi và phản hồi của khách hàng.
 
 ### 4.2. Kênh Chuyên môn Huấn luyện viên (Coach Workspace)
-* **Lịch Đứng Lớp Giảng Dạy:** Xem ca dạy theo 2 chế độ:
-  * *Chế độ Lưới Tuần (Weekly Grid):* Trực quan hóa các ngày trong tuần (T2 đến CN).
-  * *Chế độ Lịch Ngày (Agenda View):* Liệt kê ca dạy tuần tự với đầy đủ thông tin sân và danh sách học viên.
+* **Lịch Đứng Lớp Giảng Dạy Đa Chiều (Tương lai & Quá khứ):** HLV dễ dàng theo dõi toàn bộ hành trình giảng dạy qua 3 chế độ xem trực quan:
+  * *Chế độ Dòng Thời Gian (Timeline View):* Hiển thị chi tiết từng buổi học cụ thể theo Ngày - Tháng - Năm (Date), tự động phân định:
+    * 🔮 **Lịch Tương Lai / Sắp tới:** Các buổi học sắp diễn ra từ ngày mai trở đi (kèm tính năng đếm ngược số ngày).
+    * ⚡ **Hôm Nay:** Các ca dạy cần đứng lớp ngay trong ngày hôm nay.
+    * 📜 **Lịch Sử / Quá Khứ:** Toàn bộ các buổi học đã diễn ra trong quá khứ để HLV tra cứu tiến độ, điểm danh và đánh giá kỹ thuật.
+  * *Chế độ Lưới Tuần (Weekly Grid):* Trực quan hóa thời khóa biểu cố định 7 ngày trong tuần (Thứ 2 đến Chủ Nhật).
+  * *Chế độ Bảng Danh Sách (Agenda View):* Bảng dữ liệu chi tiết theo từng ca học với đầy đủ thông tin sân tập, mã học viên và giờ dạy.
+* **Bộ Lọc Thời Gian Linh Hoạt (Time Horizon Filters):** Cho phép HLV chuyển đổi 1-click giữa `🌟 Tất cả`, `🔮 Lịch Tương Lai`, `⚡ Hôm Nay` và `📜 Quá Khứ / Lịch Sử`.
 * **Quyền Hạn Điểm Danh Chuẩn Xác (Strict Coach Guard):**
   * HLV chỉ được điểm danh học viên thuộc lớp mình phụ trách.
   * Lớp do HLV khác phụ trách hiển thị nhãn `🔒 HLV khác phụ trách`.
@@ -244,7 +249,7 @@ Dự án được trang bị sẵn script kiểm thử tự động toàn diện
 ```bash
 node test_roles_and_flows.js
 ```
-**Kết quả kiểm thử đạt 36/36 tests:**
+**Kết quả kiểm thử đạt 50/50 tests:**
 ```text
 ================================================================
 🧪 BẮT ĐẦU KIỂM THỬ TỪNG ROLE & CÁC LUỒNG NGHIỆP VỤ HỆ THỐNG
@@ -252,12 +257,12 @@ node test_roles_and_flows.js
 ✓ Đã nạp thành công: 11 tài khoản, 5 hồ sơ ghi danh, 5 lịch đặt sân.
 
 ▶ [TEST SUITE 1] ROLE ADMIN (Trần Quốc Bảo)          -> 5/5 PASS
-▶ [TEST SUITE 2] ROLE COACH (4 HLV Chuyên Môn)       -> 16/16 PASS
-▶ [TEST SUITE 3] ROLE STUDENT (Lê Minh Anh)          -> 9/9 PASS
+▶ [TEST SUITE 2] ROLE COACH (4 HLV Chuyên Môn)       -> 21/21 PASS (Gồm xem Lịch Tương Lai & Quá Khứ)
+▶ [TEST SUITE 3] ROLE STUDENT (Lê Minh Anh)          -> 11/11 PASS
 ▶ [TEST SUITE 4] ROLE BANNED ACCOUNT (Đặng Văn Tùng) -> 3/3 PASS
 ▶ [TEST SUITE 5] ĐĂNG XUẤT & XÓA PHIÊN               -> 2/2 PASS
 ================================================================
-📊 TỔNG KẾT: 36 KIỂM THỬ THÀNH CÔNG, 0 THẤT BÀI (100% PASS).
+📊 TỔNG KẾT: 50 KIỂM THỬ THÀNH CÔNG, 0 THẤT BÀI (100% PASS).
 ```
 
 ---

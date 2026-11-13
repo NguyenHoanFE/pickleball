@@ -19,9 +19,13 @@ import {
   Mail,
   CalendarCheck,
   Grid,
-  List
+  List,
+  History,
+  CalendarDays,
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { calculateCourseDates, getLocalDateString } from '../data/courts';
 
 const DAYS_OF_WEEK = [
   { key: 't2', label: 'Thứ 2', short: 'T2', fullDay: 'Thứ Hai' },
@@ -104,7 +108,8 @@ export default function CoachPortalSection({
 
   // State cho Tab Lịch Đứng Lớp Giảng Dạy
   const [scheduleScope, setScheduleScope] = useState('my-schedule'); // 'my-schedule' | 'all'
-  const [scheduleViewMode, setScheduleViewMode] = useState('grid'); // 'grid' (tuần) | 'agenda' (danh sách)
+  const [scheduleViewMode, setScheduleViewMode] = useState('timeline'); // 'timeline' (buổi học cụ thể) | 'grid' (tuần) | 'agenda' (danh sách)
+  const [timeHorizonFilter, setTimeHorizonFilter] = useState('all'); // 'all' | 'upcoming' (tương lai) | 'today' (hôm nay) | 'past' (quá khứ)
   const [selectedDayFilter, setSelectedDayFilter] = useState('all');
   const [scheduleSearch, setScheduleSearch] = useState('');
 
@@ -223,6 +228,100 @@ export default function CoachPortalSection({
   const myTeachingSessions = useMemo(() => {
     return allTeachingSessions.filter((s) => s.isOwner);
   }, [allTeachingSessions]);
+
+  const todayDateStr = getLocalDateString();
+
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return dateStr;
+  };
+
+  // Trích xuất toàn bộ các buổi học cụ thể (Timeline Sessions) theo Ngày - Tháng - Năm (hỗ trợ xem Quá khứ & Tương lai)
+  const allTimelineSessions = useMemo(() => {
+    const list = [];
+    enrollments.forEach((enr) => {
+      const isOwner = isCoachOwner(enr.coachName, enr.courseId);
+      const stats = getSessionStats(enr);
+      const total = stats.total || 8;
+      const { sessionDates } = calculateCourseDates(enr.preferredSchedule, enr.startDate, total);
+      const parsedSlots = parseScheduleSlots(enr.preferredSchedule);
+
+      sessionDates.forEach((dateStr, idx) => {
+        const dateObj = new Date(dateStr);
+        const dayIdx = dateObj.getDay();
+        const dayLabel = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][dayIdx];
+        const dayKey = DAY_INDEX_MAP[dayIdx];
+        const matchedSlot = parsedSlots.find((s) => s.dayKey === dayKey) || parsedSlots[0] || { time: '18:30 - 20:30' };
+
+        let timeStatus = 'future';
+        if (dateStr < todayDateStr) {
+          timeStatus = 'past';
+        } else if (dateStr === todayDateStr) {
+          timeStatus = 'today';
+        }
+
+        const isAttended = idx < (enr.attendedSessions || 0);
+
+        list.push({
+          uniqueId: `timeline-${enr.id}-${dateStr}-${idx}`,
+          sessionIndex: idx + 1,
+          totalSessions: total,
+          date: dateStr,
+          dateFormatted: formatDisplayDate(dateStr),
+          dayLabel,
+          dayKey,
+          time: matchedSlot.time,
+          enrollmentId: enr.id,
+          studentName: enr.studentName,
+          studentPhone: enr.studentPhone,
+          studentEmail: enr.studentEmail,
+          courseId: enr.courseId,
+          courseTitle: enr.courseTitle,
+          coachName: enr.coachName,
+          isOwner,
+          timeStatus,
+          isAttended,
+          experienceLevel: enr.experienceLevel,
+          notes: enr.notes,
+          enrollmentStatus: enr.status,
+          enrollment: enr
+        });
+      });
+    });
+
+    return list.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  }, [enrollments, currentUser, courses, todayDateStr]);
+
+  const myTimelineSessions = useMemo(() => {
+    return allTimelineSessions.filter((s) => s.isOwner);
+  }, [allTimelineSessions]);
+
+  const timelineSource = scheduleScope === 'my-schedule' ? myTimelineSessions : allTimelineSessions;
+
+  const countPast = useMemo(() => timelineSource.filter((s) => s.timeStatus === 'past').length, [timelineSource]);
+  const countToday = useMemo(() => timelineSource.filter((s) => s.timeStatus === 'today').length, [timelineSource]);
+  const countUpcoming = useMemo(() => timelineSource.filter((s) => s.timeStatus === 'future' || s.timeStatus === 'today').length, [timelineSource]);
+  const countTotal = timelineSource.length;
+
+  const displayedTimelineSessions = useMemo(() => {
+    return timelineSource.filter((s) => {
+      if (timeHorizonFilter === 'upcoming' && s.timeStatus !== 'future' && s.timeStatus !== 'today') return false;
+      if (timeHorizonFilter === 'past' && s.timeStatus !== 'past') return false;
+      if (timeHorizonFilter === 'today' && s.timeStatus !== 'today') return false;
+      if (selectedDayFilter !== 'all' && s.dayKey !== selectedDayFilter) return false;
+      if (scheduleSearch) {
+        const q = scheduleSearch.toLowerCase().trim();
+        const matchName = s.studentName.toLowerCase().includes(q);
+        const matchPhone = s.studentPhone.includes(q);
+        const matchCourse = s.courseTitle.toLowerCase().includes(q);
+        const matchDate = s.date.includes(q) || s.dateFormatted.includes(q);
+        if (!matchName && !matchPhone && !matchCourse && !matchDate) return false;
+      }
+      return true;
+    });
+  }, [timelineSource, timeHorizonFilter, selectedDayFilter, scheduleSearch]);
 
   const todayDayKey = DAY_INDEX_MAP[new Date().getDay()];
   const todayDayLabel = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][new Date().getDay()];
@@ -549,9 +648,11 @@ export default function CoachPortalSection({
           </div>
           <div className="col-6 col-md-3">
             <div className="card border-0 shadow-sm rounded-4 p-3 h-100">
-              <div className="text-danger small fw-bold">CA ĐỨNG LỚP TRONG TUẦN</div>
-              <div className="fs-3 fw-extrabold text-danger">{myTeachingSessions.length} ca dạy</div>
-              <small className="text-secondary">Lịch học viên đã đăng ký & setup</small>
+              <div className="text-danger small fw-bold">LỊCH DẠY TƯƠNG LAI & QUÁ KHỨ</div>
+              <div className="fs-3 fw-extrabold text-danger">{myTimelineSessions.length} buổi</div>
+              <small className="text-secondary">
+                🔮 {myTimelineSessions.filter((s) => s.timeStatus === 'future' || s.timeStatus === 'today').length} tương lai • 📜 {myTimelineSessions.filter((s) => s.timeStatus === 'past').length} quá khứ
+              </small>
             </div>
           </div>
           <div className="col-6 col-md-3">
@@ -573,7 +674,7 @@ export default function CoachPortalSection({
             }`}
           >
             <Calendar size={18} />
-            <span>Lịch Đứng Lớp Giảng Dạy ({myTeachingSessions.length} ca)</span>
+            <span>Lịch Đứng Lớp ({myTimelineSessions.length} buổi • Tương lai & Quá khứ)</span>
           </button>
           <button
             type="button"
@@ -671,8 +772,8 @@ export default function CoachPortalSection({
 
             {/* Controls & Filter Bar */}
             <div className="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
-              <div className="row g-3 align-items-center justify-content-between">
-                <div className="col-lg-7 d-flex flex-wrap align-items-center gap-2">
+              <div className="row g-3 align-items-center justify-content-between mb-3 pb-3 border-bottom">
+                <div className="col-lg-6 d-flex flex-wrap align-items-center gap-2">
                   <div className="btn-group btn-group-sm">
                     <button
                       type="button"
@@ -681,7 +782,7 @@ export default function CoachPortalSection({
                         scheduleScope === 'my-schedule' ? 'btn-primary' : 'btn-outline-secondary'
                       }`}
                     >
-                      Lịch dạy của tôi ({myTeachingSessions.length})
+                      Lịch dạy của tôi ({myTimelineSessions.length} buổi)
                     </button>
                     <button
                       type="button"
@@ -690,7 +791,7 @@ export default function CoachPortalSection({
                         scheduleScope === 'all' ? 'btn-primary' : 'btn-outline-secondary'
                       }`}
                     >
-                      Toàn bộ học viện ({allTeachingSessions.length})
+                      Toàn bộ học viện ({allTimelineSessions.length} buổi)
                     </button>
                   </div>
 
@@ -709,7 +810,7 @@ export default function CoachPortalSection({
                   </select>
                 </div>
 
-                <div className="col-lg-5 d-flex align-items-center gap-2 justify-content-lg-end">
+                <div className="col-lg-6 d-flex flex-wrap align-items-center gap-2 justify-content-lg-end">
                   <div className="input-group input-group-sm flex-grow-1" style={{ maxWidth: '240px' }}>
                     <span className="input-group-text bg-light">
                       <Search size={14} />
@@ -717,13 +818,25 @@ export default function CoachPortalSection({
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Tìm học viên, khóa học..."
+                      placeholder="Tìm học viên, ngày, khóa..."
                       value={scheduleSearch}
                       onChange={(e) => setScheduleSearch(e.target.value)}
                     />
                   </div>
 
+                  {/* 3 View Mode Toggle Buttons */}
                   <div className="btn-group btn-group-sm">
+                    <button
+                      type="button"
+                      onClick={() => setScheduleViewMode('timeline')}
+                      className={`btn d-flex align-items-center gap-1 ${
+                        scheduleViewMode === 'timeline' ? 'btn-dark' : 'btn-outline-dark'
+                      }`}
+                      title="Dòng thời gian buổi học quá khứ & tương lai"
+                    >
+                      <CalendarDays size={15} />
+                      <span className="d-none d-sm-inline">Dòng Thời Gian</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setScheduleViewMode('grid')}
@@ -744,14 +857,227 @@ export default function CoachPortalSection({
                       title="Danh sách ca dạy"
                     >
                       <List size={15} />
-                      <span className="d-none d-sm-inline">Danh Sách</span>
+                      <span className="d-none d-sm-inline">Bảng Danh Sách</span>
                     </button>
                   </div>
                 </div>
               </div>
+
+              {/* Time Horizon Filter: Quá Khứ vs Hôm Nay vs Tương Lai */}
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div className="d-flex flex-wrap align-items-center gap-2">
+                  <span className="text-secondary small fw-bold d-flex align-items-center gap-1">
+                    <History size={15} className="text-primary" />
+                    <span>Lọc Thời Gian:</span>
+                  </span>
+                  <div className="btn-group btn-group-sm">
+                    <button
+                      type="button"
+                      onClick={() => setTimeHorizonFilter('all')}
+                      className={`btn fw-bold ${timeHorizonFilter === 'all' ? 'btn-dark' : 'btn-outline-dark'}`}
+                    >
+                      🌟 Tất cả ({countTotal})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimeHorizonFilter('upcoming')}
+                      className={`btn fw-bold ${
+                        timeHorizonFilter === 'upcoming' ? 'btn-primary' : 'btn-outline-primary'
+                      }`}
+                    >
+                      🔮 Lịch Tương Lai / Sắp tới ({countUpcoming})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimeHorizonFilter('today')}
+                      className={`btn fw-bold ${
+                        timeHorizonFilter === 'today' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'
+                      }`}
+                    >
+                      ⚡ Hôm nay ({countToday})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimeHorizonFilter('past')}
+                      className={`btn fw-bold ${
+                        timeHorizonFilter === 'past' ? 'btn-secondary text-white' : 'btn-outline-secondary'
+                      }`}
+                    >
+                      📜 Quá Khứ / Lịch Sử ({countPast})
+                    </button>
+                  </div>
+                </div>
+
+                <div className="small text-secondary">
+                  Đang hiển thị <strong>{displayedTimelineSessions.length}</strong> buổi học ({timeHorizonFilter === 'all' ? 'Toàn bộ thời gian' : timeHorizonFilter === 'upcoming' ? 'Lịch tương lai sắp tới' : timeHorizonFilter === 'past' ? 'Lịch sử quá khứ' : 'Hôm nay'})
+                </div>
+              </div>
             </div>
 
-            {/* VIEW 1: WEEKLY TIMETABLE GRID */}
+            {/* VIEW 1: TIMELINE VIEW (QUÁ KHỨ & TƯƠNG LAI - BUỔI HỌC CỤ THỂ) */}
+            {scheduleViewMode === 'timeline' && (
+              <div className="mb-4">
+                {displayedTimelineSessions.length === 0 ? (
+                  <div className="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+                    <div className="text-muted fs-1 mb-2">📅</div>
+                    <h6 className="fw-bold text-dark mb-1">Không tìm thấy buổi học nào</h6>
+                    <p className="text-secondary small mb-3">
+                      Không có buổi học nào khớp với bộ lọc &quot;{timeHorizonFilter === 'upcoming' ? 'Tương lai / Sắp tới' : timeHorizonFilter === 'past' ? 'Quá khứ / Lịch sử' : timeHorizonFilter}&quot;.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTimeHorizonFilter('all');
+                        setSelectedDayFilter('all');
+                        setScheduleSearch('');
+                      }}
+                      className="btn btn-sm btn-outline-primary mx-auto"
+                    >
+                      Đặt lại bộ lọc
+                    </button>
+                  </div>
+                ) : (
+                  <div className="row g-3">
+                    {displayedTimelineSessions.map((s) => {
+                      const isToday = s.timeStatus === 'today';
+                      const isFuture = s.timeStatus === 'future';
+                      const isPast = s.timeStatus === 'past';
+
+                      return (
+                        <div key={s.uniqueId} className="col-lg-6">
+                          <div
+                            className={`card h-100 rounded-4 border-0 shadow-sm overflow-hidden ${
+                              isToday
+                                ? 'border-start border-4 border-warning bg-warning bg-opacity-10'
+                                : isFuture
+                                ? 'border-start border-4 border-primary bg-white'
+                                : 'border-start border-4 border-secondary bg-light bg-opacity-50'
+                            }`}
+                          >
+                            {/* Card Header with Date, Time Horizon Badge, Session Index */}
+                            <div className="p-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2 bg-white">
+                              <div className="d-flex align-items-center gap-2">
+                                <span className="fw-extrabold text-dark fs-6">
+                                  📅 {s.dayLabel}, {s.dateFormatted}
+                                </span>
+                                {isToday && (
+                                  <span className="badge bg-warning text-dark fw-bold px-2 py-1 shadow-xs">
+                                    ⚡ Hôm nay
+                                  </span>
+                                )}
+                                {isFuture && (
+                                  <span className="badge bg-primary text-white fw-bold px-2 py-1 shadow-xs">
+                                    🔮 Sắp tới (Tương lai)
+                                  </span>
+                                )}
+                                {isPast && (
+                                  <span className="badge bg-secondary text-white fw-bold px-2 py-1">
+                                    📜 Quá khứ / Lịch sử
+                                  </span>
+                                )}
+                              </div>
+                              <span className="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold">
+                                Buổi {s.sessionIndex}/{s.totalSessions}
+                              </span>
+                            </div>
+
+                            {/* Card Body */}
+                            <div className="p-3">
+                              <div className="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                  <h6 className="fw-bold text-dark mb-1 d-flex align-items-center gap-1">
+                                    <span>🎓</span>
+                                    <span>{s.courseTitle}</span>
+                                  </h6>
+                                  <div className="d-flex flex-wrap gap-1 align-items-center mt-1">
+                                    <span className="badge bg-primary fw-bold">
+                                      🕒 {s.time}
+                                    </span>
+                                    <span className="badge bg-light text-primary border border-primary-subtle">
+                                      🏟️ Sân Huấn Luyện #3 (Cố định)
+                                    </span>
+                                    {s.isOwner ? (
+                                      <span className="badge bg-success-subtle text-success fw-bold">
+                                        ⭐ Lớp của bạn
+                                      </span>
+                                    ) : (
+                                      <span className="badge bg-light text-secondary border">
+                                        HLV: {s.coachName}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="p-2 bg-light rounded-3 mb-2 small">
+                                <div className="d-flex justify-content-between mb-1">
+                                  <span className="text-secondary">Học viên:</span>
+                                  <strong className="text-dark">👤 {s.studentName}</strong>
+                                </div>
+                                <div className="d-flex justify-content-between mb-1">
+                                  <span className="text-secondary">Liên hệ:</span>
+                                  <span>
+                                    <a href={`tel:${s.studentPhone}`} className="text-decoration-none fw-semibold">
+                                      📞 {s.studentPhone}
+                                    </a>
+                                  </span>
+                                </div>
+                                {s.notes && (
+                                  <div className="text-muted fst-italic mt-1 border-top pt-1">
+                                    💬 &quot;{s.notes}&quot;
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Footer Action */}
+                              <div className="d-flex align-items-center justify-content-between pt-2 border-top">
+                                <div>
+                                  {s.isAttended ? (
+                                    <span className="badge bg-success-subtle text-success fw-bold">
+                                      ✅ Đã điểm danh ({s.enrollment.attendedSessions || 0}/{s.totalSessions} buổi)
+                                    </span>
+                                  ) : isPast ? (
+                                    <span className="badge bg-light text-secondary border">
+                                      📜 Buổi học trong quá khứ
+                                    </span>
+                                  ) : isToday ? (
+                                    <span className="badge bg-warning text-dark fw-bold">
+                                      ⚡ Diễn ra hôm nay
+                                    </span>
+                                  ) : (
+                                    <span className="badge bg-primary-subtle text-primary">
+                                      ⏳ Lịch dạy sắp tới
+                                    </span>
+                                  )}
+                                </div>
+
+                                {s.isOwner ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openGradingModal(s.enrollment)}
+                                    className="btn btn-sm btn-outline-primary fw-bold d-flex align-items-center gap-1"
+                                    style={{ fontSize: '0.78rem' }}
+                                  >
+                                    <Edit3 size={13} />
+                                    <span>Điểm danh & DUPR</span>
+                                  </button>
+                                ) : (
+                                  <span className="badge bg-light text-secondary border" style={{ fontSize: '0.7rem' }}>
+                                    🔒 HLV khác phụ trách
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* VIEW 2: WEEKLY TIMETABLE GRID */}
             {scheduleViewMode === 'grid' && (
               <div className="weekly-schedule-container overflow-x-auto pb-2 mb-4">
                 <div className="row g-2 flex-nowrap flex-xl-wrap" style={{ minWidth: '920px' }}>
@@ -894,62 +1220,65 @@ export default function CoachPortalSection({
               </div>
             )}
 
-            {/* VIEW 2: AGENDA LIST VIEW */}
+            {/* VIEW 3: AGENDA LIST VIEW (BẢNG DANH SÁCH CHI TIẾT THEO NGÀY CỤ THỂ) */}
             {scheduleViewMode === 'agenda' && (
               <div className="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-4">
                 <div className="table-responsive">
                   <table className="table table-hover align-middle mb-0 small">
                     <thead className="table-light">
                       <tr>
-                        <th style={{ width: '150px' }}>Thứ & Giờ Ca Dạy</th>
-                        <th>Khóa Học & Huấn Luyện Viên</th>
+                        <th style={{ width: '170px' }}>Ngày & Thứ</th>
+                        <th style={{ width: '150px' }}>Giờ & Sân Tập</th>
+                        <th>Khóa Học & HLV</th>
                         <th>Học Viên Tham Gia</th>
-                        <th>Ghi Chú Đăng Ký Của Học Viên</th>
-                        <th>Tiến Độ Khóa Học</th>
-                        <th>Trạng Thái</th>
+                        <th>Buổi Học</th>
+                        <th>Thời Điểm</th>
                         <th style={{ width: '160px' }}>Hành Động</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {displayedSessions.length === 0 ? (
+                      {displayedTimelineSessions.length === 0 ? (
                         <tr>
                           <td colSpan="7" className="text-center py-5 text-muted">
-                            Không tìm thấy ca dạy nào phù hợp với bộ lọc.
+                            Không tìm thấy buổi học nào phù hợp với bộ lọc thời gian.
                           </td>
                         </tr>
                       ) : (
-                        displayedSessions.map((s) => {
-                          const isToday = s.dayKey === todayDayKey;
+                        displayedTimelineSessions.map((s) => {
+                          const isToday = s.timeStatus === 'today';
+                          const isFuture = s.timeStatus === 'future';
+                          const isPast = s.timeStatus === 'past';
+
                           return (
-                            <tr key={s.uniqueId} className={isToday ? 'table-primary-subtle' : ''}>
+                            <tr key={s.uniqueId} className={isToday ? 'table-warning' : isFuture ? 'table-light' : ''}>
                               <td>
-                                <div className="fw-bold text-dark d-flex align-items-center gap-1">
-                                  <span>{s.dayLabel}</span>
-                                  {isToday && (
-                                    <span className="badge bg-danger" style={{ fontSize: '0.6rem' }}>
-                                      Hôm nay
-                                    </span>
-                                  )}
+                                <div className="fw-bold text-dark">
+                                  📅 {s.dayLabel}
                                 </div>
-                                <span className="badge bg-primary text-white fw-bold mt-1">
+                                <div className="text-primary fw-semibold" style={{ fontSize: '0.8rem' }}>
+                                  {s.dateFormatted}
+                                </div>
+                              </td>
+                              <td>
+                                <span className="badge bg-primary text-white fw-bold">
                                   ⏰ {s.time}
                                 </span>
+                                <div className="text-muted mt-1" style={{ fontSize: '0.7rem' }}>
+                                  🏟️ Sân số 3
+                                </div>
                               </td>
                               <td>
                                 <div className="fw-bold text-dark">{s.courseTitle}</div>
                                 <div className="d-flex align-items-center gap-1 flex-wrap mt-1">
                                   {s.isOwner ? (
                                     <span className="badge bg-success-subtle text-success">
-                                      Lớp do bạn phụ trách
+                                      ⭐ Lớp của bạn
                                     </span>
                                   ) : (
                                     <span className="badge bg-light text-secondary border">
                                       HLV: {s.coachName}
                                     </span>
                                   )}
-                                  <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
-                                    🏟️ Sân Huấn Luyện #3
-                                  </span>
                                 </div>
                               </td>
                               <td>
@@ -967,39 +1296,41 @@ export default function CoachPortalSection({
                                 </div>
                               </td>
                               <td>
-                                <div
-                                  className="badge bg-light text-dark border mb-1"
-                                  style={{ fontSize: '0.7rem' }}
-                                >
-                                  Trình độ: {s.experienceLevel || 'Cơ bản'}
-                                </div>
-                                {s.notes ? (
-                                  <div className="text-muted small italic">💬 "{s.notes}"</div>
-                                ) : (
-                                  <span className="text-muted small">—</span>
-                                )}
-                              </td>
-                              <td>
-                                <div className="d-flex justify-content-between small fw-bold mb-1">
-                                  <span>
-                                    {s.stats.attended}/{s.stats.total} buổi
-                                  </span>
-                                  <span className="text-primary">{s.stats.percent}%</span>
-                                </div>
-                                <div className="progress" style={{ height: '6px' }}>
-                                  <div
-                                    className="progress-bar bg-success"
-                                    style={{ width: `${s.stats.percent}%` }}
-                                  />
-                                </div>
-                                <small className="text-muted" style={{ fontSize: '0.68rem' }}>
-                                  Còn {s.stats.remaining} buổi • Nghỉ: {s.stats.absent} buổi
-                                </small>
-                              </td>
-                              <td>
-                                <span className="badge bg-success">
-                                  {s.status === 'confirmed' ? 'Đang theo học' : s.status}
+                                <span className="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold">
+                                  Buổi {s.sessionIndex}/{s.totalSessions}
                                 </span>
+                                <div className="mt-1">
+                                  {s.isAttended ? (
+                                    <span className="badge bg-success text-white" style={{ fontSize: '0.65rem' }}>
+                                      ✅ Đã điểm danh
+                                    </span>
+                                  ) : isPast ? (
+                                    <span className="badge bg-secondary text-white" style={{ fontSize: '0.65rem' }}>
+                                      📜 Đã diễn ra
+                                    </span>
+                                  ) : (
+                                    <span className="badge bg-light text-muted border" style={{ fontSize: '0.65rem' }}>
+                                      ⏳ Chưa diễn ra
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                {isToday && (
+                                  <span className="badge bg-warning text-dark fw-bold px-2 py-1">
+                                    ⚡ Hôm nay
+                                  </span>
+                                )}
+                                {isFuture && (
+                                  <span className="badge bg-primary text-white fw-bold px-2 py-1">
+                                    🔮 Tương lai
+                                  </span>
+                                )}
+                                {isPast && (
+                                  <span className="badge bg-secondary text-white fw-bold px-2 py-1">
+                                    📜 Quá khứ
+                                  </span>
+                                )}
                               </td>
                               <td>
                                 {s.isOwner ? (
@@ -1016,7 +1347,7 @@ export default function CoachPortalSection({
                                     className="badge bg-light text-secondary border px-2 py-2 d-block text-center"
                                     style={{ fontSize: '0.72rem' }}
                                   >
-                                    🔒 {s.coachName ? 'HLV khác phụ trách' : 'Chưa phân công HLV'}
+                                    🔒 HLV khác phụ trách
                                   </span>
                                 )}
                               </td>
