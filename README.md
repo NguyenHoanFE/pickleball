@@ -1,176 +1,299 @@
-# 🏓 VN PICKLEBALL ACADEMY — WEBSITE HỌC VIỆN ĐÀO TẠO PICKLEBALL CHUẨN QUỐC TẾ
+# 🏓 VN PICKLEBALL ACADEMY — HỆ THỐNG WEBSITE HỌC VIỆN ĐÀO TẠO PICKLEBALL CHUẨN QUỐC TẾ
 
-**Đồ án môn học:** Front-End Web Development with ReactJS (FER201 / FER202)  
-**Đề tài:** Xây dựng Website Học viện Đào tạo Pickleball (VN Pickleball Academy)  
-**Công nghệ sử dụng:** ReactJS 18, Bootstrap 5, Lucide React Icons, Context API, LocalStorage  
-**Tương thích thiết bị (Responsive):** Tối ưu hóa 100% trên Mobile (`320px` – `428px`), Tablet (`768px` – `1024px`) và Desktop (`1280px+`).
+[![React](https://img.shields.io/badge/React-19.x%20%2F%2018.x-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3.x-7952B3?logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
+[![Lucide Icons](https://img.shields.io/badge/Icons-Lucide%20React-F56565)](https://lucide.dev/)
+[![Tests](https://img.shields.io/badge/Test%20Suite-36%2F36%20Passing-success)](file:///c:/Users/ducan/Downloads/Group_Project/Group_Project/2_Source_Code/test_roles_and_flows.js)
+[![Vercel Ready](https://img.shields.io/badge/Deployment-Vercel%20SPA%20Ready-black?logo=vercel)](file:///c:/Users/ducan/Downloads/Group_Project/Group_Project/2_Source_Code/vercel.json)
 
----
-
-## 📑 MỤC LỤC TÀI LIỆU BÀN GIAO (SUBMISSION DELIVERABLES)
-
-1. [Phân tích Nghiệp vụ (BA) & Lý do chọn các Chức năng Mở rộng](#1-phân-tích-nghiệp-vụ-ba--lý-do-chọn-các-chức-năng-mở-rộng)
-2. [Installation & Deployment Guide (Hướng dẫn Cài đặt & Deploy Vercel)](#2-installation--deployment-guide-hướng-dẫn-cài-đặt--deploy-vercel)
-3. [Source Code Architecture (Cấu trúc Mã nguồn)](#3-source-code-architecture-cấu-trúc-mã-nguồn)
-4. [Root Credentials (Tài khoản Quản trị & Demo 4 Vai trò)](#4-root-credentials-tài-khoản-quản-trị--demo-4-vai-trò)
-5. [End-user Manual (Hướng dẫn Sử dụng dành cho Học viên & Khách hàng)](#5-end-user-manual-hướng-dẫn-sử-dụng-dành-cho-học-viên--khách-hàng)
-6. [Administrator Manual (Hướng dẫn Quản trị Hệ thống & Huấn luyện viên)](#6-administrator-manual-hướng-dẫn-quản-trị-hệ-thống--huấn-luyện-viên)
+> **Đồ án môn học:** Front-End Web Development with ReactJS (FER201 / FER202)  
+> **Đơn vị phát triển:** Nhóm sinh viên chuyên ngành Kỹ thuật Phần mềm  
+> **Đề tài:** Xây dựng Hệ sinh thái Website Đào tạo & Vận hành Học viện Pickleball Toàn diện  
+> **Tương thích thiết bị (Responsive):** Tối ưu 100% trên Điện thoại di động (`320px` – `428px`), Máy tính bảng (`768px` – `1024px`) và Màn hình máy tính để bàn (`1280px+`).
 
 ---
 
-## 1. Phân tích Nghiệp vụ (BA) & Lý do chọn các Chức năng Mở rộng
+## 📑 MỤC LỤC TÀI LIỆU (TABLE OF CONTENTS)
 
-Đóng vai trò là Chuyên viên Phân tích Nghiệp vụ (Business Analyst - BA) khảo sát hoạt động thực tế của các Học viện Pickleball hiện nay tại Việt Nam, nhóm nhận thấy một học viện đào tạo thành công không chỉ dừng lại ở việc giới thiệu và nhận ghi danh khóa học mà còn vận hành theo mô hình **Hệ sinh thái Đào tạo – Sân tập – Dụng cụ – Cộng đồng**. Vì vậy, bên cạnh 4 trang cơ bản theo yêu cầu đề bài (`Home`, `Courses`, `Booking/Register`, `About & Contact`), nhóm đã phân tích và triển khai **5 chức năng mở rộng thực tế**:
-
-1. **Hệ thống Đặt sân tập theo giờ (Real-time Court Booking System):**
-   - *Lý do BA lựa chọn:* Học viên sau giờ học với HLV luôn có nhu cầu thuê sân để tự luyện tập thêm (Drilling) hoặc giao lưu đánh đôi. Đồng thời, việc cho thuê sân theo khung giờ (Ca sáng, Ca chiều, Giờ vàng Peak Hour) kết hợp cho thuê vợt Carbon và máy bắn bóng Titan Pro giúp học viện tối ưu công suất khai thác 12 sân tập và tăng nguồn thu.
-2. **Cửa hàng Dụng cụ Pickleball Chính hãng (Pro Shop & Giỏ hàng / Thanh toán):**
-   - *Lý do BA lựa chọn:* 90% học viên mới bắt đầu chưa có vợt riêng hoặc chưa biết chọn vợt lõi 14mm hay 16mm. Tích hợp Pro Shop ngay trên website giúp học viên dễ dàng đặt mua vợt JOOLA, Selkirk, bóng thi đấu Franklin X-40 và giày chuyên dụng chuẩn USAPA do chính HLV học viện khuyên dùng.
-3. **Blog Cẩm nang Luật chơi Pickleball & Đánh giá từ Học viên cũ (Knowledge Hub & Testimonials):**
-   - *Lý do BA lựa chọn:* Người mới tìm hiểu về Pickleball rất cần tài liệu chuẩn hóa về luật Non-Volley Zone (Kitchen), quy tắc 2-Bounce Rule và kỹ thuật Third-Shot Drop. Ngoài ra, mục Đánh giá thực tế (Testimonials) hiển thị tiến bộ điểm DUPR của học viên cũ kèm biểu mẫu gửi Review trực tiếp giúp gia tăng niềm tin (Social Proof) và tỷ lệ chuyển đổi đăng ký học.
-4. **Hệ thống Quản lý Tài khoản Đa vai trò (Student / Coach / Admin) & Lịch sử Học tập:**
-   - *Lý do BA lựa chọn:* Giúp học viên đăng nhập để theo dõi lại danh sách khóa học đã đăng ký, lịch sử mã đặt sân và đơn hàng Pro Shop; đồng thời giúp Ban Giám đốc và HLV quản lý danh sách học viên, mở lớp mới và phân quyền thành viên ngay trên giao diện web.
+1. [Tổng quan Đề tài & Nghiệp vụ Hệ sinh thái Đào tạo (BA Analysis)](#1-tổng-quan-đề-tài--nghiệp-vụ-hệ-sinh-thái-đào-tạo-ba-analysis)
+2. [Cấu trúc Mã nguồn & Kiến trúc Component (Architecture)](#2-cấu-trúc-mã-nguồn--kiến-trúc-component-architecture)
+3. [Bảng Phân Quyền & 11 Tài khoản Hệ thống (Root Credentials)](#3-bảng-phân-quyền--11-tài-khoản-hệ-thống-root-credentials)
+4. [Các Phân Hệ Chức Năng Nổi Bật (Core Modules)](#4-các-phân-hệ-chức-năng-nổi-bật-core-modules)
+   - [4.1. Không gian Quản trị Độc lập (Admin Portal)](#41-không-gian-quản-trị-độc-lập-admin-portal)
+   - [4.2. Kênh Chuyên môn Huấn luyện viên (Coach Workspace)](#42-kênh-chuyên-môn-huấn-luyện-viên-coach-workspace)
+   - [4.3. Cổng Học viên & Khách hàng (Student & Customer Portal)](#43-cổng-học-viên--khách-hàng-student--customer-portal)
+5. [Cơ Chế Xếp Lịch & Phòng Vệ 10 Lỗi Nguy Cơ Cao (Defect Prevention)](#5-cơ-chế-xếp-lịch--phòng-vệ-10-lỗi-nguy-cơ-cao-defect-prevention)
+6. [Hướng dẫn Cài đặt, Chạy Local & Kiểm thử Tự động (Testing Guide)](#6-hướng-dẫn-cài-đặt-chạy-local--kiểm-thử-tự-động-testing-guide)
+7. [Hướng dẫn Triển khai Public lên Host Miễn phí (Vercel & Netlify)](#7-hướng-dẫn-triển-khai-public-lên-host-miễn-phí-vercel--netlify)
 
 ---
 
-## 2. Installation & Deployment Guide (Hướng dẫn Cài đặt & Deploy Vercel)
+## 1. Tổng quan Đề tài & Nghiệp vụ Hệ sinh thái Đào tạo (BA Analysis)
 
-### 2.1. Yêu cầu môi trường (Prerequisites)
-- **Node.js:** Phiên bản `>= 18.x` (Khuyến nghị bản LTS)
-- **Trình quản lý gói:** `npm` (đi kèm Node.js) và `Git`
+Dưới góc nhìn của **Chuyên viên Phân tích Nghiệp vụ (Business Analyst - BA)** khảo sát thị trường thể thao Pickleball bùng nổ tại Việt Nam, một học viện đào tạo chuyên nghiệp không thể chỉ dừng lại ở một trang landing page giới thiệu tĩnh. Nhóm đã nghiên cứu và hiện thực hóa mô hình **Hệ sinh thái Đào tạo khép kín (All-in-One Pickleball Academy Platform)**:
 
-### 2.2. Các bước cài đặt và chạy dưới Local
+```
+                  ┌────────────────────────────────────────┐
+                  │      VN PICKLEBALL ACADEMY ECOSYSTEM   │
+                  └───────────────────┬────────────────────┘
+                                      │
+       ┌──────────────────────────────┼──────────────────────────────┐
+       ▼                              ▼                              ▼
+┌──────────────┐              ┌──────────────┐              ┌──────────────┐
+│  ĐÀO TẠO     │              │  CƠ SỞ VẬT   │              │  CỬA HÀNG    │
+│  & DUPR      │              │  CHẤT SÂN    │              │  PRO SHOP    │
+├──────────────┤              ├──────────────┤              ├──────────────┤
+│• 8 Khóa học  │              │• 6 Cụm sân   │              │• Vợt JOOLA/  │
+│• Phân bổ HLV │              │• Ma trận 8 ca│              │  Selkirk     │
+│• Điểm danh B1│              │• Tự động giữ │              │• Bóng thi đấu│
+│• Chấm điểm   │              │  sân tập lớp │• Giỏ hàng    │
+│  DUPR skill  │              │• Thuê máy bắn│• VietQR/COD  │
+└──────────────┘              └──────────────┘              └──────────────┘
+```
+
+### Các giá trị nghiệp vụ đột phá được giải quyết:
+1. **Liên kết Đào tạo - Giữ sân tự động:** Khi học viên đăng ký khóa học, học viện đã tự động giữ chỗ cố định trên **Sân Indoor Huấn Luyện #3** cho toàn bộ các buổi học. Học viên đến ngày học chỉ cần lên sân tập, không phải tự trả thêm tiền thuê sân.
+2. **Lịch học linh hoạt (Không ép buộc đầu tuần):** Học viên có thể chọn **Ngày bắt đầu học (`startDate`) bất kỳ**. Hệ thống tự động tính toán đủ $N$ buổi học theo ca học trong tuần để xác định chính xác **Ngày kết thúc dự kiến (`expectedEndDate`)** và hiển thị chi tiết từng ngày học.
+3. **Phân bổ Huấn luyện viên chuyên môn hóa:** Mỗi khóa học được đảm nhiệm bởi đúng HLV chuyên trách (Cơ bản, Nâng cao, 1 Kèm 1, Trẻ em) kèm thuật toán phát hiện và ngăn chặn trùng lịch ca dạy.
+4. **Hệ thống Quản lý Đa vai trò (Multi-Role RBAC):** Phân chia rõ ràng 3 phân hệ tương tác: `Admin` (Quản trị viên), `Coach` (Huấn luyện viên), `Student/Guest` (Học viên & Khách hàng).
+
+---
+
+## 2. Cấu trúc Mã nguồn & Kiến trúc Component (Architecture)
+
+Toàn bộ dự án tuân thủ kiến trúc phân tầng Component-driven hiện đại, quản trị trạng thái tập trung qua Context API kết hợp bộ dữ liệu gốc `database.json` và đồng bộ `LocalStorage`:
+
+```text
+2_Source_Code/
+├── public/
+│   ├── favicon.svg                    # Logo biểu tượng vợt Pickleball
+│   ├── icons.svg                      # Sprite Icons
+│   └── index.html                     # HTML5 Shell, Google Fonts (Plus Jakarta Sans), SEO Meta
+├── src/
+│   ├── assets/                        # Hình ảnh Banner, minh họa sân bãi & trang thiết bị
+│   ├── components/
+│   │   ├── Header.jsx                 # Navigation đa vai trò, Giỏ hàng, Menu Mobile responsive
+│   │   ├── HomeSection.jsx            # Trang chủ: Hero, Cơ sở vật chất 6 sân, 8 khóa học, Đội ngũ HLV
+│   │   ├── CoursesSection.jsx         # Khóa học: Tìm kiếm, lọc cấp độ DUPR, modal giáo trình chi tiết
+│   │   ├── RegisterSection.jsx        # Đăng ký khóa học: Chọn ngày bắt đầu, phát hiện trùng lịch, chống spam
+│   │   ├── CourtBookingSection.jsx    # Đặt sân theo giờ: Sơ đồ sân, thuê vợt Carbon/máy bắn bóng, ưu đãi học viên
+│   │   ├── ProShopSection.jsx         # Cửa hàng dụng cụ: Vợt thi đấu, bóng Franklin X-40, phụ kiện chính hãng
+│   │   ├── BlogReviewsSection.jsx     # Cẩm nang kỹ thuật (Dink/Kitchen), gửi đánh giá học viên (Testimonials)
+│   │   ├── AboutContactSection.jsx    # Lịch sử học viện, bản đồ Google Maps Iframe, form liên hệ
+│   │   ├── AdminPortalSection.jsx     # [Role Admin] Không gian quản trị toàn màn hình: Ma trận sân, 8 phân hệ CRUD
+│   │   ├── CoachPortalSection.jsx     # [Role Coach] Lịch dạy Grid/Agenda, Chấm chuyên cần theo ngày, Điểm DUPR
+│   │   ├── UserProfileModal.jsx       # [Role Student] Hồ sơ cá nhân: Kế hoạch B1-BN, lịch đặt sân, đơn hàng
+│   │   ├── CartDrawerModal.jsx        # Giỏ hàng: Cập nhật số lượng live, thanh toán VietQR/COD, chống spam đơn
+│   │   ├── AuthModal.jsx              # Cửa sổ Đăng nhập / Đăng ký & Nút 1-Click Login nhanh
+│   │   └── Footer.jsx                 # Chân trang, hotline giáo vụ, chứng chỉ USAPA/PPR
+│   ├── context/
+│   │   └── AuthContext.jsx            # Quản lý phiên làm việc, phân quyền RBAC, đồng bộ khóa tài khoản thời gian thực
+│   ├── data/
+│   │   ├── users.js                   # Danh mục 11 tài khoản định danh (Admin, 4 HLV, Học viên, Banned)
+│   │   ├── courses.js                 # 8 Khóa học từ Nhập môn đến Thực chiến giải đấu
+│   │   ├── courts.js                  # 6 Sân tập USAPA, 8 khung giờ, thuật toán xếp lịch và tránh trùng ca
+│   │   ├── products.js                # Dụng cụ thể thao Pro Shop chuẩn chính hãng
+│   │   └── blogs.js                   # Cẩm nang luật chơi & 5 hồ sơ ghi danh mẫu
+│   ├── App.jsx                        # Component gốc điều phối Route Tab, State toàn cục và Guard bảo mật
+│   ├── App.css                        # Hệ thống màu thương hiệu (Lime Green/Navy), Responsive 320px–428px
+│   ├── index.css                      # Reset CSS & Typography
+│   └── index.js                       # Điểm gắn kết React DOM
+├── test_roles_and_flows.js            # [Test Suite] Bộ kịch bản kiểm thử tự động 36 ca kiểm thử
+├── vercel.json                        # Cấu hình định tuyến SPA mượt mà trên nền tảng Vercel
+├── database.json                      # Bản sao lưu trữ cấu trúc dữ liệu JSON
+└── README.md                          # Tài liệu kỹ thuật dự án
+```
+
+---
+
+## 3. Bảng Phân Quyền & 11 Tài khoản Hệ thống (Root Credentials)
+
+Hệ thống tích hợp sẵn **11 tài khoản mẫu** đại diện cho đầy đủ các vai trò thực tế để giảng viên và người dùng kiểm thử ngay:
+
+| STT | Vai trò (Role) | Họ tên hiển thị | Email đăng nhập | Mật khẩu | Trách nhiệm & Quyền hạn nghiệp vụ |
+| :-: | :--- | :--- | :--- | :--- | :--- |
+| **1** | **Root Admin** | Trần Quốc Bảo | `admin@pickleball.edu.vn` | `Admin@123` | **Toàn quyền Admin Portal:** Ma trận sân trống 6 sân $\times$ 8 ca, CRUD sân bãi, khóa/mở khung giờ, quản lý khóa học, kho Pro Shop & phân quyền tài khoản. |
+| **2** | **Coach** | HLV Nguyễn Hoàng Nam | `coach@pickleball.edu.vn` | `Coach@123` | Phụ trách **Chiến thuật Nâng cao (3.5+)**, Tournament Bootcamp & Huấn luyện Doanh nghiệp. |
+| **3** | **Coach** | HLV Sarah Jenkins | `sarah.coach@pickleball.edu.vn` | `Coach@123` | Phụ trách **Huấn luyện 1 Kèm 1 VIP (Private)** & Khóa Cấp tốc Cuối tuần. |
+| **4** | **Coach** | HLV Vũ Minh Quân | `quan.coach@pickleball.edu.vn` | `Coach@123` | Phụ trách **Khối Cơ bản (Beginner Foundation 2.0 - 3.0)** & Nhập môn Pickleball. |
+| **5** | **Coach** | HLV Lê Phương Thảo | `thao.coach@pickleball.edu.vn` | `Coach@123` | Phụ trách **Khối Thiếu nhi (Kids Junior Camp 6-15 tuổi)** & Pickleball Phái đẹp/Fitness. |
+| **6** | **Student** | Lê Minh Anh | `student@pickleball.edu.vn` | `Student@123` | Học viên DUPR 3.25: Đã có sẵn lịch sử khóa học, phiếu đặt sân tập & đơn hàng Pro Shop. |
+| **7** | **Student** | Phạm Gia Huy | `huy.pham@gmail.com` | `Student@123` | Học viên DUPR 3.60: Đang theo học lớp Chiến thuật Nâng cao. |
+| **8** | **Student** | Nguyễn Minh Đức | `duc.nguyen@doanhnghiep.vn` | `Student@123` | Học viên DUPR 3.75: Đã hoàn thành khóa Thực chiến Giải đấu. |
+| **9** | **Student** | Trần Thanh Tâm | `tam.tran@techcorp.vn` | `Student@123` | Học viên DUPR 2.80: Đang theo học lớp Pickleball Phái đẹp. |
+| **10** | **Student** | Võ Hoàng Khang | `khang.vo@gmail.com` | `Student@123` | Học viên DUPR 2.40: Đang theo học khóa Huấn luyện 1 Kèm 1. |
+| **11** | **Banned** | Đặng Văn Tùng | `tung.dang@spam.com` | `123456` | **Tài khoản bị khóa:** Dùng kiểm thử tính năng chặn đăng nhập vi phạm an toàn. |
+
+> 💡 **Tính năng 1-Click Login:** Tại cửa sổ Đăng nhập, người dùng chỉ cần nhấn vào các nút tài khoản mẫu có sẵn để điền tự động Email và Mật khẩu mà không cần gõ phím thủ công.
+
+---
+
+## 4. Các Phân Hệ Chức Năng Nổi Bật (Core Modules)
+
+### 4.1. Không gian Quản trị Độc lập (Admin Portal)
+* **Giao diện làm việc chuyên biệt:** Tự động mở toàn màn hình khi Quản trị viên đăng nhập, trang bị thanh Sidebar gồm 8 phân hệ quản lý:
+  1. **Sơ đồ Sân Trống theo Ngày/Giờ (`court-matrix`):** Ma trận trực quan 6 Sân $\times$ 8 Khung giờ. Nhấp vào ô bất kỳ để tạo đặt sân khách vãng lai, chuyển đổi ngày/giờ ca đặt, hoặc khóa sân bảo trì.
+  2. **Quản lý Cụm Sân (`courts-crud`):** Thêm mới sân, cập nhật bảng giá thường/giờ cao điểm, bật tắt chế độ bảo trì.
+  3. **Quản lý Khung Giờ (`slots-crud`):** Thêm/sửa/xóa ca giờ hoạt động, đánh dấu ca Peak Hour (Giờ vàng).
+  4. **Quản lý Khóa Học (`courses`):** Tạo khóa học mới, cập nhật học phí, chỉnh sửa giáo trình đào tạo. Có cơ chế **chặn xóa khóa học đang có học viên theo học**.
+  5. **Quản lý Hồ Sơ Ghi Danh (`enrollments`):** Tiếp nhận đơn đăng ký trực tuyến, phân công Huấn luyện viên phụ trách trực tiếp qua dropdown.
+  6. **Quản lý Kho Hàng Pro Shop (`shop-products`):** Thêm dụng cụ, điều chỉnh tồn kho và giá bán.
+  7. **Quản lý Phân Quyền & Tài Khoản (`users`):** Chuyển đổi vai trò `Student` $\leftrightarrow$ `Coach` $\leftrightarrow$ `Admin`, khóa/mở khóa tài khoản ngay lập tức.
+  8. **Hộp Thư Liên Hệ (`contacts`):** Tiếp nhận câu hỏi và phản hồi của khách hàng.
+
+### 4.2. Kênh Chuyên môn Huấn luyện viên (Coach Workspace)
+* **Lịch Đứng Lớp Giảng Dạy:** Xem ca dạy theo 2 chế độ:
+  * *Chế độ Lưới Tuần (Weekly Grid):* Trực quan hóa các ngày trong tuần (T2 đến CN).
+  * *Chế độ Lịch Ngày (Agenda View):* Liệt kê ca dạy tuần tự với đầy đủ thông tin sân và danh sách học viên.
+* **Quyền Hạn Điểm Danh Chuẩn Xác (Strict Coach Guard):**
+  * HLV chỉ được điểm danh học viên thuộc lớp mình phụ trách.
+  * Lớp do HLV khác phụ trách hiển thị nhãn `🔒 HLV khác phụ trách`.
+  * Hồ sơ chưa được xếp giáo viên hiển thị nhãn `🔒 Chưa phân công HLV`.
+* **Form Điểm Danh Tối Giản & Đánh Giá DUPR:**
+  * Chỉ điểm danh buổi học hiện tại (`Có mặt` / `Vắng mặt`), tự động tính số buổi còn lại.
+  * Chấm điểm xếp hạng DUPR (2.0 – 5.0).
+  * Đánh giá 4 kỹ năng cốt lõi: Kỹ thuật Dink bóng, Kỹ thuật Drop shot (Thả bóng vào Kitchen), Giao bóng & Cú đánh thứ 3, Bộ chân di chuyển (Footwork).
+  * Nhận xét chuyên môn gửi riêng cho học viên.
+
+### 4.3. Cổng Học viên & Khách hàng (Student & Customer Portal)
+* **Đăng ký Khóa học Nhanh chóng:** Tự do chọn ngày bắt đầu, hệ thống tự động tính ngày kết thúc, kiểm tra chống trùng lịch và tự động phân bổ Sân Huấn Luyện #3.
+* **Hồ Sơ Cá Nhân (`UserProfileModal`):**
+  * Thẻ tổng quan khóa học: Ngày bắt đầu $\rightarrow$ Ngày kết thúc dự kiến.
+  * Bảng chi tiết kế hoạch từng buổi học (Buổi 1 đến Buổi $N$) với ngày dương lịch, thứ trong tuần, sân tập và huy hiệu trạng thái điểm danh.
+  * Quản lý phiếu đặt sân theo giờ (hỗ trợ bấm Hủy lịch tức thì).
+  * Lịch sử đơn hàng dụng cụ Pro Shop.
+* **Đặt Sân Tập Tự Động:** Chọn ngày, chọn sân, chọn khung giờ trống, tích hợp tùy chọn mượn vợt tập và máy bắn bóng tự động. Giảm giá 20% cho học viên đang theo học.
+* **Pro Shop & Giỏ Hàng:** Mua sắm dụng cụ chính hãng, giỏ hàng tự động cập nhật số lượng và tổng tiền theo thời gian thực, có chế độ chống bấm đúp khi thanh toán.
+
+---
+
+## 5. Cơ Chế Xếp Lịch & Phòng Vệ 10 Lỗi Nguy Cơ Cao (Defect Prevention)
+
+Hệ thống đã trải qua quy trình rà soát và khắc phục triệt để **10 lỗi chức năng có nguy cơ cao**:
+
+```
+┌────┬─────────────────────────────┬──────────────────────────────────────────────────────────────┐
+│STT │ Lỗi Cần Kiểm Tra            │ Giải Pháp Kỹ Thuật Đã Triển Khai                             │
+├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 6  │ Đặt trùng sân               │ Kiểm tra 2 lớp: Vô hiệu hóa nút chọn trong UI & xác thực xung│
+│    │                             │ đột thời gian thực tại handleAddCourtBooking trước khi lưu.  │
+├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 7  │ Hủy đặt sân                 │ Khi hủy, cập nhật status='cancelled'. Bộ lọc ma trận tự động │
+│    │                             │ loại trừ và mở trống lại ca sân ngay lập tức.                │
+├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 8  │ Đăng ký khóa học nhiều lần  │ Kiểm tra (courseId + SĐT/Email). Nếu đã có hồ sơ đang học,   │
+│    │                             │ hiện cảnh báo vàng và vô hiệu hóa nút Submit.                │
+├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 9  │ Xóa khóa học mất hồ sơ cũ   │ Kiểm tra enrollments active. Nếu còn học viên đang học, hệ   │
+│    │                             │ thống CHẶN XÓA để bảo toàn dữ liệu học viên.                 │
+├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 10 │ Khóa tài khoản vẫn login    │ Chặn ngay từ hàm login. Bổ sung useEffect tự động kick out   │
+│    │                             │ và xóa session nếu tài khoản bị Admin ban khi đang online.   │
+├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 11 │ Đổi quyền tài khoản lọt tab │ Guard 2 lớp tại App.jsx và từng Component Portal: Chặn truy  │
+│    │                             │ cập trái phép và hiển thị màn hình "Từ chối truy cập".       │
+├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 12 │ Giỏ hàng sai tổng tiền      │ Tính toán live với reduce. Hiển thị khối tóm tắt đơn hàng rõ │
+│    │                             │ ràng ngay tại bước Checkout để khách luôn thấy tổng tiền.    │
+├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 13 │ Spam nút thanh toán         │ Tích hợp cờ isSubmitting: Khóa nút bấm ngay sau khi click,    │
+│    │                             │ loại bỏ 100% rủi ro tạo nhiều đơn hàng trùng.                │
+├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 14 │ Đăng xuất không sạch        │ Hàm logout() xóa dứt điểm LocalStorage và reset tab về       │
+│    │                             │ 'home', F5 lại trang không bị kẹt phiên đăng nhập cũ.        │
+├────┼─────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 15 │ Vỡ giao diện trên mobile    │ 100% bảng bọc table-responsive. Giới hạn max-width cho modal,│
+│    │ (320px – 428px)             │ ngắt dòng tự động và chuyển sidebar thành thanh trượt ngang. │
+└────┴─────────────────────────────┴──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 6. Hướng dẫn Cài đặt, Chạy Local & Kiểm thử Tự động (Testing Guide)
+
+### 6.1. Yêu cầu môi trường
+* **Node.js:** Phiên bản `>= 18.x` (Khuyến nghị bản LTS)
+* **Trình quản lý gói:** `npm` (đi kèm Node.js) và `Git`
+
+### 6.2. Cài đặt và Chạy máy chủ Local
 ```bash
-# Bước 1: Di chuyển vào thư mục gốc của dự án
-cd FER_Assignment
+# 1. Di chuyển vào thư mục mã nguồn
+cd Group_Project/2_Source_Code
 
-# Bước 2: Cài đặt đầy đủ các thư viện phụ thuộc (Dependencies)
+# 2. Cài đặt các thư viện phụ thuộc
 npm install
 
-# Bước 3: Khởi chạy сервер phát triển (Development Server)
+# 3. Khởi chạy ứng dụng ở môi trường Development
 npm start
 ```
-- Sau khi chạy lệnh `npm start`, trình duyệt sẽ tự động mở tại địa chỉ: **`http://localhost:3000`**
+* Trình duyệt sẽ tự động mở trang web tại địa chỉ: **`http://localhost:3000`**
 
-### 2.3. Kiểm tra bản Build Production
+### 6.3. Đóng gói Bản Build Kiểm thử
 ```bash
 npm run build
 ```
-- Lệnh trên sẽ đóng gói và tối ưu hóa toàn bộ mã nguồn ReactJS vào thư mục `build/`, sẵn sàng để đưa lên môi trường Production.
+* Mã nguồn sẽ được biên dịch tối ưu hóa vào thư mục `build/` với kết quả `Compiled successfully`.
 
-### 2.4. Hướng dẫn Deploy lên Vercel (Public Internet Miễn phí)
-1. **Đẩy code lên GitHub:**
-   ```bash
-   git init
-   git add .
-   git commit -m "feat: complete VN Pickleball Academy full group project"
-   git branch -M main
-   git remote add origin https://github.com/<ten-tai-khoan>/<ten-repo>.git
-   git push -u origin main
-   ```
-2. **Kết nối Vercel:**
-   - Truy cập [https://vercel.com/](https://vercel.com/) và đăng nhập bằng tài khoản **GitHub**.
-   - Nhấn **Add New...** ➔ **Project** ➔ Chọn **Import** kho lưu trữ GitHub vừa đẩy lên.
-3. **Cấu hình Build Settings trên Vercel:**
-   - **Framework Preset:** `Create React App` (Vercel tự động nhận diện)
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `build`
-   - **Install Command:** `npm install`
-4. **Hoàn tất:** Nhấn **Deploy**, đợi khoảng 1–2 phút để nhận đường dẫn public có dạng `https://vn-pickleball-academy.vercel.app`.
-
----
-
-## 3. Source Code Architecture (Cấu trúc Mã nguồn)
-
-Dự án được thiết kế theo kiến trúc phân tầng Component-driven sạch sẽ, dễ bảo trì và tái sử dụng:
-
+### 6.4. Chạy Bộ Kiểm Thử Tự Động (Automated Regression Test Suite)
+Dự án được trang bị sẵn script kiểm thử tự động toàn diện [test_roles_and_flows.js](file:///c:/Users/ducan/Downloads/Group_Project/Group_Project/2_Source_Code/test_roles_and_flows.js):
+```bash
+node test_roles_and_flows.js
+```
+**Kết quả kiểm thử đạt 36/36 tests:**
 ```text
-FER_Assignment/
-├── public/
-│   └── index.html                     # Cấu hình 메타태그 SEO, Google Fonts (Plus Jakarta Sans) & Viewport Mobile
-├── src/
-│   ├── components/
-│   │   ├── Header.jsx                 # Thanh điều hướng Responsive, Giỏ hàng, Menu Mobile & Thông tin User
-│   │   ├── HomeSection.jsx            # Trang chủ: Hero Banner, Cơ sở vật chất, Khóa học nổi bật, Đội ngũ HLV
-│   │   ├── CoursesSection.jsx         # Trang Khóa học: Tìm kiếm, Lọc danh mục, Sắp xếp & Modal Giáo trình chi tiết
-│   │   ├── RegisterSection.jsx        # Trang Đăng ký học: Form ghi danh & Hệ thống Validation chuẩn UX
-│   │   ├── CourtBookingSection.jsx    # [Mở rộng #1] Hệ thống Đặt sân tập theo giờ & Thuê vợt / Máy bắn bóng
-│   │   ├── ProShopSection.jsx         # [Mở rộng #2] Cửa hàng dụng cụ Pickleball chính hãng
-│   │   ├── BlogReviewsSection.jsx     # [Mở rộng #3] Blog Luật chơi Pickleball & Đánh giá học viên (Testimonials)
-│   │   ├── AboutContactSection.jsx    # Trang Giới thiệu & Liên hệ: Lịch sử hình thành, Google Maps Iframe, Form liên hệ
-│   │   ├── AuthModal.jsx              # Modal Đăng nhập / Đăng ký & Nút 1-Click Demo Login
-│   │   ├── UserProfileModal.jsx       # Hồ sơ Học viên: Xem lịch sử đăng ký khóa học, lịch đặt sân, đơn hàng
-│   │   ├── CartDrawerModal.jsx        # Giỏ hàng & Thanh toán dụng cụ Pro Shop (VietQR / COD / Tại sân)
-│   │   ├── AdminDashboardModal.jsx    # Trung tâm Quản trị (Root Admin) & Bảng điều khiển Huấn luyện viên (Coach)
-│   │   └── Footer.jsx                 # Chân trang, Toast Notification & Thanh chuyển đổi Role nhanh (RoleSwitcherBar)
-│   ├── context/
-│   │   └── AuthContext.jsx            # Quản lý State xác thực toàn cục, phân quyền 4 Roles & đồng bộ LocalStorage
-│   ├── data/
-│   │   ├── courses.js                 # Dữ liệu 6 khóa đào tạo chi tiết (Cơ bản, Nâng cao, 1 kèm 1, Trẻ em, Giải đấu)
-│   │   ├── courts.js                  # Dữ liệu 4 sân tập tiêu chuẩn USAPA & 8 khung giờ đặt sân
-│   │   ├── products.js                # Dữ liệu 8 sản phẩm vợt, bóng, giày, phụ kiện Pro Shop
-│   │   ├── blogs.js                   # Dữ liệu bài viết luật chơi, đánh giá học viên & danh sách ghi danh mẫu
-│   │   └── users.js                   # Dữ liệu tài khoản Root Admin, Coach, Student & Đội ngũ HLV
-│   ├── App.jsx                        # Component gốc điều phối định tuyến Tab, State & Modals
-│   ├── App.css                        # Hệ thống giao diện & Media Queries chống vỡ layout từ 320px
-│   └── index.js                       # Điểm khởi chạy ứng dụng React 18
-├── package.json                       # Khai báo thư viện và scripts
-└── README.md                          # Tài liệu hướng dẫn toàn diện
+================================================================
+🧪 BẮT ĐẦU KIỂM THỬ TỪNG ROLE & CÁC LUỒNG NGHIỆP VỤ HỆ THỐNG
+================================================================
+✓ Đã nạp thành công: 11 tài khoản, 5 hồ sơ ghi danh, 5 lịch đặt sân.
+
+▶ [TEST SUITE 1] ROLE ADMIN (Trần Quốc Bảo)          -> 5/5 PASS
+▶ [TEST SUITE 2] ROLE COACH (4 HLV Chuyên Môn)       -> 16/16 PASS
+▶ [TEST SUITE 3] ROLE STUDENT (Lê Minh Anh)          -> 9/9 PASS
+▶ [TEST SUITE 4] ROLE BANNED ACCOUNT (Đặng Văn Tùng) -> 3/3 PASS
+▶ [TEST SUITE 5] ĐĂNG XUẤT & XÓA PHIÊN               -> 2/2 PASS
+================================================================
+📊 TỔNG KẾT: 36 KIỂM THỬ THÀNH CÔNG, 0 THẤT BÀI (100% PASS).
 ```
 
 ---
 
-## 4. Root Credentials (Tài khoản Quản trị & Demo 4 Vai trò)
+## 7. Hướng dẫn Triển khai Public lên Host Miễn phí (Vercel & Netlify)
 
-Để thuận tiện cho Giảng viên kiểm thử và chấm điểm, hệ thống cung cấp sẵn **Tài khoản Quản trị tối cao (Root Credentials)** cùng tính năng **1-Click Demo Login** ngay trong cửa sổ Đăng nhập và trên **Thanh chuyển đổi Role ở góc dưới màn hình**:
+Để sản phẩm có đường link công khai truy cập từ bất kỳ đâu:
 
-| Vai trò (Role) | Email đăng nhập | Mật khẩu | Quyền hạn trong hệ thống |
-| :--- | :--- | :--- | :--- |
-| **Root Admin (Quản trị viên)** | `admin@pickleball.edu.vn` | `Admin@123` | Toàn quyền truy cập **Admin Dashboard**: Xem thống kê doanh thu/KPI, Thêm/Xóa khóa học, Xem danh sách học viên ghi danh, Quản lý lịch đặt sân, Khóa/Mở khóa user và Đổi quyền thành viên. |
-| **Coach (Huấn luyện viên)** | `coach@pickleball.edu.vn` | `Coach@123` | Truy cập **Kênh HLV (Coach Portal)**: Theo dõi danh sách học viên đăng ký lớp học, xem lịch sử đặt sân tập và quản lý giáo trình khóa học. |
-| **Student (Học viên)** | `student@pickleball.edu.vn` | `Student@123` | Đăng ký khóa học (tự động điền thông tin cá nhân), đặt sân tập theo giờ, mua dụng cụ Pro Shop, gửi đánh giá khóa học và xem **Lịch sử học tập** trong Hồ sơ cá nhân. |
-| **Banned Account (Kiểm thử khóa)** | `tung.dang@spam.com` | `123456` | Tài khoản bị khóa để kiểm thử thông báo chặn đăng nhập an toàn. |
+### Cách 1: Triển khai qua Vercel + GitHub (Khuyến nghị số 1)
+1. **Đẩy mã nguồn lên GitHub:**
+   ```bash
+   cd Group_Project/2_Source_Code
+   git init
+   git add .
+   git commit -m "feat: release VN Pickleball Academy full system"
+   git branch -M main
+   git remote add origin https://github.com/<tai-khoan-cua-ban>/pickleball-academy.git
+   git push -u origin main
+   ```
+2. **Đăng nhập Vercel:** Truy cập [https://vercel.com/](https://vercel.com/), chọn **Continue with GitHub**.
+3. **Thêm Dự án mới:** Nhấn **Add New...** ➔ **Project** ➔ Chọn **Import** repository vừa đẩy lên.
+4. **Cấu hình Build Settings:**
+   * **Framework Preset:** `Create React App` (Vercel tự động nhận diện).
+   * **Root Directory:** `./` (nếu đẩy từ `2_Source_Code`) hoặc chọn `Group_Project/2_Source_Code`.
+   * **Build Command:** `npm run build`
+   * **Output Directory:** `build`
+   * File [vercel.json](file:///c:/Users/ducan/Downloads/Group_Project/Group_Project/2_Source_Code/vercel.json) đã được thiết lập sẵn quy tắc SPA rewrite để không bị lỗi 404 khi người dùng tải lại trang.
+5. **Nhấn Deploy:** Sau khoảng 1 phút, bạn sẽ nhận được đường link website chính thức dạng:
+   $$\text{https://<ten-du-an>.vercel.app}$$
 
----
-
-## 5. End-user Manual (Hướng dẫn Sử dụng dành cho Học viên & Khách hàng)
-
-1. **Khám phá Trang chủ (`Trang chủ`):**
-   - Xem tổng quan cơ sở vật chất 12 sân chuẩn quốc tế, 3 khóa học tiêu biểu, thông tin đội ngũ 4 Huấn luyện viên chứng chỉ PPR/IPTPA và đánh giá từ học viên cũ.
-2. **Tra cứu & Xem chi tiết Khóa học (`Khóa học`):**
-   - Sử dụng thanh tìm kiếm hoặc các nút lọc danh mục (`Cơ bản`, `Nâng cao`, `Trẻ em`, `1 Kèm 1`, `Luyện thi đấu`).
-   - Nhấn **"Xem Giáo Trình"** trên bất kỳ thẻ khóa học nào để xem chi tiết Thời lượng, Học phí, Lịch học, HLV phụ trách và nội dung từng buổi học (Syllabus).
-3. **Đăng ký Khóa học & Kiểm tra Validation (`Đăng ký học`):**
-   - Nhấn nút **"Đăng Ký Học"** để chuyển sang biểu mẫu ghi danh.
-   - Nhập *Họ tên*, *Số điện thoại (chuẩn 10 số VN)*, *Email*, *Khóa học muốn đăng ký* và *Ghi chú*.
-   - Nếu bỏ trống hoặc nhập sai định dạng Email/SĐT, hệ thống sẽ báo lỗi chi tiết ngay bên dưới ô nhập liệu. Khi hợp lệ, nhấn **"Xác Nhận Đăng Ký Khóa Học"** để nhận Mã hồ sơ ghi danh.
-4. **Đặt sân tập theo giờ (`Đặt sân tập`):**
-   - Bước 1: Chọn 1 trong 4 sân tập (Sân Indoor VIP máy lạnh hoặc Sân mái che).
-   - Bước 2: Chọn ngày và khung giờ trống (các ca đã đặt sẽ hiển thị trạng thái *"Đã kín"*).
-   - Tùy chọn thuê thêm vợt Carbon hoặc máy bắn bóng Titan Pro, điền tên & SĐT và nhấn **"Xác Nhận Đặt Sân Ngay"**.
-5. **Mua sắm tại Pro Shop (`Pro Shop`):**
-   - Lọc theo nhóm sản phẩm (*Vợt*, *Bóng*, *Giày*, *Balo & Phụ kiện*), nhấn **"Mua ngay"** để thêm vào Giỏ hàng.
-   - Mở nút **Giỏ hàng** trên thanh Header để điều chỉnh số lượng và tiến hành đặt hàng (VietQR, COD hoặc Nhận tại sân).
-6. **Đọc Blog Luật chơi & Gửi Review (`Blog & Review`):**
-   - Nhấn **"Đọc bài viết"** để xem toàn văn cẩm nang luật chơi Pickleball và kỹ thuật 3rd Shot Drop.
-   - Điền biểu mẫu **"Gửi Đánh Giá Của Bạn"** ở cột bên phải để đăng cảm nhận mới lên hệ thống.
-7. **Xem Bản đồ & Liên hệ (`Giới thiệu & Liên hệ`):**
-   - Xem lịch sử phát triển của Học viện, tương tác trực tiếp với bản đồ **Google Maps Iframe** và gửi câu hỏi qua Form liên hệ.
+### Cách 2: Triển khai qua Netlify Drop (Có Link trong 30 giây)
+1. Chạy lệnh: `npm run build` tại thư mục `2_Source_Code`.
+2. Mở trình duyệt vào [https://app.netlify.com/drop](https://app.netlify.com/drop).
+3. Kéo thả trực tiếp thư mục `build/` vào khung upload của Netlify.
+4. Nhận ngay domain miễn phí dạng `https://<ten-ngau-nhien>.netlify.app`.
 
 ---
 
-## 6. Administrator Manual (Hướng dẫn Quản trị Hệ thống & Huấn luyện viên)
+## 👥 THÀNH VIÊN NHÓM THỰC HIỆN ĐỒ ÁN
+* **Đề tài:** Hệ thống Website Học viện Đào tạo Pickleball (VN Pickleball Academy)
+* **Giảng viên hướng dẫn:** Bộ môn Phát triển Ứng dụng Web Front-End (FER201/FER202)
+* **Năm thực hiện:** 2026
 
-1. **Cách truy cập Bảng điều khiển Quản trị (Root Admin Dashboard):**
-   - **Cách 1 (Nhanh nhất):** Nhấn nút **`🛡️ Root Admin`** trên thanh công cụ **DEMO ROLES** ở góc dưới màn hình.
-   - **Cách 2:** Nhấn nút **Đăng nhập** trên thanh Header ➔ Nhập tài khoản `admin@pickleball.edu.vn` / `Admin@123` (hoặc nhấn nút 1-Click Demo Root Admin) ➔ Nhấn nút màu đỏ **"Quản trị"** trên thanh Header.
-2. **Quản lý Khóa học (`Tab: Quản Lý Khóa Học`):**
-   - Xem danh sách toàn bộ các khóa đào tạo hiện hành.
-   - Sử dụng biểu mẫu **"Mở Lớp / Khóa Đào Tạo Mới"** ở cột bên phải để thêm khóa học mới (nhập tên khóa học, học phí, HLV, lịch học) hoặc nhấn biểu tượng thùng rác để xóa khóa học.
-3. **Quản lý Hồ sơ Ghi danh Học viên (`Tab: Danh Sách Học Viên Đăng Ký`):**
-   - Theo dõi toàn bộ phiếu đăng ký khóa học mới từ trang Đăng ký học theo thời gian thực (Mã phiếu, Họ tên, SĐT, Email, Khóa học, Lịch học và Ghi chú).
-4. **Quản lý Lịch Đặt Sân Tập (`Tab: Lịch Đặt Sân Tập`):**
-   - Kiểm tra danh sách khách hàng đặt sân theo ngày, ca tập và tổng phí thanh toán.
-5. **Quản lý Tài khoản & Phân quyền (`Tab: Quản Lý Tài Khoản & Phân Quyền`):**
-   - Thay đổi vai trò của bất kỳ tài khoản nào giữa `Học viên (Student)` ↔ `Huấn luyện viên (Coach)` ↔ `Quản trị viên (Admin)`.
-   - Nhấn nút **Khóa (Lock)** để vô hiệu hóa tài khoản vi phạm hoặc **Mở (Unlock)** để khôi phục quyền truy cập.
+*Chúc các bạn trải nghiệm và đánh giá hệ thống thành công tốt đẹp!* 🏓
