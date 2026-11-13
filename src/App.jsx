@@ -21,7 +21,8 @@ import {
   INITIAL_COURTS,
   TIME_SLOTS,
   INITIAL_COURT_BOOKINGS,
-  generateTrainingBookingsForEnrollment
+  generateTrainingBookingsForEnrollment,
+  isTimeOverlapping
 } from './data/courts';
 import { INITIAL_PRODUCTS, INITIAL_SHOP_ORDERS } from './data/products';
 import {
@@ -601,14 +602,14 @@ export default function App() {
   }, [enrollments, courts, timeSlots]);
 
   const handleAddCourtBooking = (newBooking) => {
-    // Item 6: Prevent double-booking / conflict
+    // Item 6: Prevent double-booking / conflict (handles exact slot & partial time overlap)
     const hasConflict = courtBookings.some(
       (b) =>
         b.courtId === newBooking.courtId &&
         b.date === newBooking.date &&
-        b.slotId === newBooking.slotId &&
         b.status !== 'cancelled' &&
-        b.id !== newBooking.id
+        b.id !== newBooking.id &&
+        (b.slotId === newBooking.slotId || isTimeOverlapping(b.time, newBooking.time))
     );
     if (hasConflict) {
       showToast('Khung giờ này đã có người đặt trước đó. Vui lòng chọn ca khác!', 'danger');

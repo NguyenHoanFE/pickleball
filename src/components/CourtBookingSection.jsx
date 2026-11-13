@@ -12,7 +12,7 @@ import {
   GraduationCap,
   Award
 } from 'lucide-react';
-import { TIME_SLOTS, getLocalDateString } from '../data/courts';
+import { TIME_SLOTS, getLocalDateString, isTimeOverlapping } from '../data/courts';
 import { useAuth } from '../context/AuthContext';
 
 export default function CourtBookingSection({
@@ -91,8 +91,13 @@ export default function CourtBookingSection({
   const selectedSlot = timeSlots.find((s) => s.id === selectedSlotId) || timeSlots[0];
 
   const isSlotBooked = (courtId, date, slotId) => {
+    const slotObj = timeSlots.find((s) => s.id === slotId);
     return courtBookings.some(
-      (b) => b.courtId === courtId && b.date === date && b.slotId === slotId && b.status !== 'cancelled'
+      (b) =>
+        b.courtId === courtId &&
+        b.date === date &&
+        b.status !== 'cancelled' &&
+        (b.slotId === slotId || (slotObj && isTimeOverlapping(slotObj.time, b.time)))
     );
   };
 
@@ -348,8 +353,8 @@ export default function CourtBookingSection({
                     (b) =>
                       b.courtId === selectedCourtId &&
                       b.date === selectedDate &&
-                      b.slotId === slot.id &&
-                      b.status !== 'cancelled'
+                      b.status !== 'cancelled' &&
+                      (b.slotId === slot.id || isTimeOverlapping(slot.time, b.time))
                   );
                   const booked = Boolean(existingBooking);
                   const isTrainingClass = existingBooking?.bookingType === 'training_class';

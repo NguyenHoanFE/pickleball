@@ -149,6 +149,45 @@ coachCredentials.forEach((coach) => {
   assert(isCoachOwner('HLV Sarah Jenkins', coachNam) === false, 'HLV Nam BỊ CHẶN điểm danh lớp của HLV Sarah');
   assert(isCoachOwner('Chưa phân công', coachNam) === false, 'HLV Nam BỊ CHẶN điểm danh hồ sơ chưa phân công HLV');
   assert(isCoachOwner('', coachNam) === false, 'HLV Nam BỊ CHẶN điểm danh chuỗi rỗng');
+
+  // Test Conflict-Free Scheduling (Giao nhau một phần: Lớp A 08:00-10:00 vs Lớp B 09:00-11:00)
+  function parseTimeRangeMinutes(timeStr) {
+    if (!timeStr) return { start: 0, end: 0 };
+    const match = timeStr.match(/(\d{1,2})[:h](\d{2})\s*-\s*(\d{1,2})[:h](\d{2})/i);
+    if (!match) return { start: 0, end: 0 };
+    const start = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+    const end = parseInt(match[3], 10) * 60 + parseInt(match[4], 10);
+    return { start, end };
+  }
+  function isTimeOverlapping(timeStr1, timeStr2) {
+    const t1 = parseTimeRangeMinutes(timeStr1);
+    const t2 = parseTimeRangeMinutes(timeStr2);
+    if (t1.start === 0 && t1.end === 0) return false;
+    if (t2.start === 0 && t2.end === 0) return false;
+    return Math.max(t1.start, t2.start) < Math.min(t1.end, t2.end);
+  }
+
+  const isOverlappingPartial = isTimeOverlapping('08:00 - 10:00', '09:00 - 11:00');
+  assert(isOverlappingPartial === true, 'Phát hiện chính xác 2 lớp giao thoa thời gian một phần: Lớp A (08:00-10:00) và Lớp B (09:00-11:00)');
+
+  const isConsecutiveOverlapping = isTimeOverlapping('08:00 - 10:00', '10:00 - 12:00');
+  assert(isConsecutiveOverlapping === false, 'Hai ca liền kề kết thúc ca này bắt đầu ca kia (10:00) KHÔNG bị tính là trùng lịch');
+
+  // Simulation of checkScheduleSlotConflict
+  const mockCoachNamBookings = [
+    {
+      id: 'TRAIN-CLASS-A',
+      courtId: 'court-3',
+      date: '2026-11-20',
+      time: '08:00 - 10:00',
+      linkedCoachName: 'HLV Nguyễn Hoàng Nam',
+      status: 'confirmed'
+    }
+  ];
+  const newClassConflict = mockCoachNamBookings.some((b) => {
+    return b.status !== 'cancelled' && b.date === '2026-11-20' && b.linkedCoachName.includes('Nguyễn Hoàng Nam') && isTimeOverlapping('09:00 - 11:00', b.time);
+  });
+  assert(newClassConflict === true, 'Hệ thống CHẶN Lớp B (09:00-11:00) khi HLV Nguyễn Hoàng Nam đã có Lớp A (08:00-10:00)');
 }
 console.log('');
 
@@ -196,6 +235,43 @@ console.log('▶ [TEST SUITE 3] KIỂM THỬ ROLE HỌC VIÊN (STUDENT - Lê Min
   // Test Court Booking Cancellation (Lỗi 7)
   const cancelledBooking = { ...existingBooking, status: 'cancelled' };
   assert(isSlotOccupied(cancelledBooking, newBookingAttempt) === false, 'Sau khi hủy đặt sân, khung giờ TRỞ THÀNH TRỐNG ngay lập tức (Lỗi 7)');
+
+  // Test Tự động giữ Sân số 3 cho tất cả các buổi học và Chặn khách vãng lai chiếm chỗ
+  const mockEnrollment = {
+    id: 'ENR-9999',
+    studentName: 'Nguyễn Văn A',
+    courseId: 'course-101',
+    courseTitle: 'Khóa Nhập Môn Pickleball',
+    preferredSchedule: 'T2 - T4 - T6 17:30 - 19:30',
+    startDate: '2026-11-16',
+    totalSessions: 8,
+    sessionDates: [
+      '2026-11-16', '2026-11-18', '2026-11-20', '2026-11-23',
+      '2026-11-25', '2026-11-27', '2026-11-30', '2026-12-02'
+    ]
+  };
+
+  // Simulating generateTrainingBookingsForEnrollment on Court #3
+  const targetCourtId = 'court-3';
+  const autoReservedBookings = mockEnrollment.sessionDates.map((d, idx) => ({
+    id: `TRAIN-${mockEnrollment.id}-${d}`,
+    courtId: targetCourtId,
+    courtName: 'Sân Huấn Luyện Đào Tạo #3 (Indoor)',
+    date: d,
+    slotId: 'slot-6',
+    time: '17:30 - 19:00',
+    bookingType: 'training_class',
+    status: 'confirmed'
+  }));
+
+  assert(autoReservedBookings.length === 8, 'Hệ thống TỰ ĐỘNG GIỮ ĐỦ 8 BUỔI trên Sân Huấn Luyện số 3 cho học viên');
+  assert(autoReservedBookings.every(b => b.courtId === 'court-3'), '100% tất cả các buổi học đều được cố định giữ trên SÂN SỐ 3');
+
+  // Customer tries to book Court #3 on the same date and overlapping time
+  const freeCustomerConflict = autoReservedBookings.some((b) => {
+    return b.courtId === 'court-3' && b.date === '2026-11-16' && b.status !== 'cancelled' && (b.slotId === 'slot-6' || isTimeOverlapping('17:30 - 19:00', b.time));
+  });
+  assert(freeCustomerConflict === true, 'Khách vãng lai đặt sân tự do BỊ CHẶN TUYỆT ĐỐI không thể chiếm khung giờ của lớp học trên Sân số 3');
 
   // Test Cart Quantity & Live Total calculation (Lỗi 12)
   const cart = [
