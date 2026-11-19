@@ -48,11 +48,11 @@ export default function Footer({ onNavigate }) {
               </div>
             </div>
             <p className="text-white-50 small mb-3">
-              Học viện Đào tạo Pickleball chuẩn quốc tế USA Pickleball & PPR hàng đầu Việt Nam. Hệ thống 12 sân Indoor máy lạnh, đội ngũ HLV quốc tế và Pro Shop chính hãng.
+             FPTU CF Club
             </p>
             <div className="small text-white-75">
-              <div className="mb-1">📍 Số 10 Mai Chí Thọ, KĐT Sala, TP. Thủ Đức, TP.HCM</div>
-              <div className="mb-1">📞 Hotline: 1900 6886 • 0901 234 567</div>
+              <div className="mb-1">📍 Hòa Lạc</div>
+              <div className="mb-1">📞 Hotline: 0963000010</div>
               <div>✉️ Email: tuyensinh@pickleball.edu.vn</div>
             </div>
           </div>

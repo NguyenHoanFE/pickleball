@@ -91,9 +91,9 @@ export default function Header({
             )}
           </div>
           <div className="d-none d-lg-flex align-items-center gap-3">
-            <span>📍 Khu đô thị Sala, TP. Thủ Đức, TP.HCM</span>
+            <span>📍 FPTU CF Club</span>
             <span>•</span>
-            <span>📞 Hotline: 1900 6886 (05:30 - 22:30)</span>
+            <span>📞 Hotline: 0963000010(05:30 - 22:30)</span>
           </div>
         </div>
       </div>

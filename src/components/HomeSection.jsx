@@ -62,7 +62,7 @@ export default function HomeSection({
               <div className="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill vp-badge-hero mb-3">
                 <Sparkles size={16} className="text-warning" />
                 <span className="small fw-semibold">
-                  HỌC VIỆN ĐÀO TẠO PICKLEBALL SỐ 1 VIỆT NAM • CHUẨN USA PICKLEBALL
+                  FPTU CF Pickleball Club
                 </span>
               </div>
 
