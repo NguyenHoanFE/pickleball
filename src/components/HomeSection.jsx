@@ -115,7 +115,7 @@ export default function HomeSection({
             <div className="col-lg-5">
               <div className="vp-hero-card p-3 rounded-4 shadow-lg position-relative">
                 <img
-                  src="https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=900&auto=format&fit=crop&q=80"
+                  src="https://6aff09622f01816de4805ed7.imgix.net/sandbox/870989525_29583745881232904_6598279631358371742_n.jpg?w=900&auto=format&fit=crop&q=80"
                   alt="Huấn luyện Pickleball chuyên nghiệp"
                   className="img-fluid rounded-4 w-100 object-fit-cover"
                   style={{ height: '360px' }}
