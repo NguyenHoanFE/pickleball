@@ -114,7 +114,7 @@ export default function Header({
             </div>
             <div>
               <div className="fw-extrabold fs-5 lh-1 text-white d-flex align-items-center gap-1 vp-brand-title">
-                VN PICKLEBALL <span className="vp-text-lime">ACADEMY</span>
+                FPTU CF PICKLEBALL <span className="vp-text-lime">ACADEMY</span>
               </div>
               <small className="text-white-50 d-block vp-brand-sub" style={{ fontSize: '0.68rem' }}>
                 {isAdmin
